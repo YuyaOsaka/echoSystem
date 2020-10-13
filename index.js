@@ -12,7 +12,9 @@ const LaunchRequestHandler = {
     handle(handlerInput) {
         // 初期呼び出し
         // 「ハローワールドスキル」のみだとここが呼び出される
-        const speechText = 'Hello World.';
+        // 更新しました。
+        //const speechText = event['key1'];
+        const speechText = 'こんにちは。';
 
         return handlerInput.responseBuilder
             .speak(speechText)
@@ -28,7 +30,8 @@ const HelloWorldIntentHandler = {
     handle(handlerInput) {
         // インテント呼び出し
         // 「ハローワールドスキルで、〇〇」だとここが呼び出される
-        const speechText = 'Hello World Good Day.';
+        //const speechText = event['key1'];
+        const speechText = 'こんにちは。いい天気です。';
 
         return handlerInput.responseBuilder
             .speak(speechText)
