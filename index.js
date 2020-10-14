@@ -1,6 +1,3 @@
-/* eslint-disable  func-names */
-/* eslint-disable  no-console */
-
 const Alexa = require('ask-sdk-core');
 
 const LaunchRequestHandler = {
@@ -10,11 +7,7 @@ const LaunchRequestHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
-        // 初期呼び出し
-        // 「ハローワールドスキル」のみだとここが呼び出される
-        // 更新しました。
-        //const speechText = event['key1'];
-        const speechText = 'こんにちは。';
+        const speechText = 'Hello World.';
 
         return handlerInput.responseBuilder
             .speak(speechText)
@@ -28,10 +21,7 @@ const HelloWorldIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'HelloWorldIntent';
     },
     handle(handlerInput) {
-        // インテント呼び出し
-        // 「ハローワールドスキルで、〇〇」だとここが呼び出される
-        //const speechText = event['key1'];
-        const speechText = 'こんにちは。いい天気です。';
+        const speechText = 'Hello World Good Day.';
 
         return handlerInput.responseBuilder
             .speak(speechText)
