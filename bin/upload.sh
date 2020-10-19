@@ -1,6 +1,6 @@
 #!/bin/bash
 
-git archive HEAD --output=nodejs.zip
+zip -r nodejs.zip ./
 
 aws lambda update-function-code \
     --function-name HelloWorldTestSkill \
