@@ -1,4 +1,8 @@
 const Alexa = require('ask-sdk-core');
+const AWS = require("aws-sdk");
+const dynamoDB = new AWS.DynamoDB.DocumentClient({
+    region: "ap-northeast-1"
+  });
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -22,6 +26,30 @@ const HelloWorldIntentHandler = {
     },
     handle(handlerInput) {
         const speechText = 'Hello World Good Day.';
+
+        return handlerInput.responseBuilder
+            .speak(speechText)
+            .getResponse();
+    },
+};
+
+const AddUserIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'AddUserIntent';
+    },
+    async handle(handlerInput) {
+        // スロットからユーザー名を取得
+        const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+        // DynamoDBにユーザーを追加
+        const addData = {
+            TableName: "userList",
+            Item: {
+                name: inputName
+            }
+        };
+        await dynamoDB.put(addData).promise();
+        const speechText = `${inputName}さんを当番表に追加しました。`;
 
         return handlerInput.responseBuilder
             .speak(speechText)
@@ -74,6 +102,7 @@ exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
         HelloWorldIntentHandler,
+        AddUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
