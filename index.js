@@ -42,14 +42,41 @@ const AddUserIntentHandler = {
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
         // DynamoDBにユーザーを追加
-        const addData = {
-            TableName: "userList",
+        const params = {
+            TableName: 'userList',
             Item: {
                 name: inputName
             }
         };
-        await dynamoDB.put(addData).promise();
+        await dynamoDB.put(params).promise();
         const speechText = `${inputName}さんを当番表に追加しました。`;
+
+        return handlerInput.responseBuilder
+            .speak(speechText)
+            .getResponse();
+    },
+};
+
+const GetAllUserIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'GetAllUserIntent';
+    },
+    async handle(handlerInput) {
+        // テーブル内のデータ件数を取得
+        const params = {
+            TableName: 'userList',
+          };
+        const allUserList = [];
+        const result = await dynamoDB.scan(params).promise();
+        allUserList.push(...result.Items);
+
+        // 取得した名前データをテキストに追加
+        let speechText = `当番表に登録されているメンバーは、`;
+        for (const i in allUserList) {
+            speechText += `${allUserList[i].name}さん、`;
+        }
+        speechText += `です。`;
 
         return handlerInput.responseBuilder
             .speak(speechText)
@@ -103,6 +130,7 @@ exports.handler = skillBuilder
         LaunchRequestHandler,
         HelloWorldIntentHandler,
         AddUserIntentHandler,
+        GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
