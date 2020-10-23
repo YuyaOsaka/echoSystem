@@ -64,18 +64,19 @@ const GetAllUserIntentHandler = {
     },
     async handle(handlerInput) {
         // テーブル内のデータ件数を取得
-        let params = {
+        const params = {
             TableName: 'userList',
           };
-        let allUserList = [];
+        const allUserList = [];
         const result = await dynamoDB.scan(params).promise();
         allUserList.push(...result.Items);
 
+        // 取得した名前データをテキストに追加
         let speechText = `当番表に登録されているメンバーは、`;
-        for (let i = 0; i < allUserList.length-1; i++) {
+        for (const i in allUserList) {
             speechText += `${allUserList[i].name}さん、`;
         }
-        speechText += `${allUserList.slice(-1)[0].name}さんです。`;
+        speechText += `です。`;
 
         return handlerInput.responseBuilder
             .speak(speechText)
