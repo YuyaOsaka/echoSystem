@@ -1,0 +1,38 @@
+{
+    "extends": "eslint:recommended",
+    "env": {
+        "browser": true,
+        "es6": true
+    },
+    "parser": "babel-eslint",
+    "globals": {
+        "require": false,
+        "exports": false
+    },
+    "rules": {
+        "indent": ["error", 4, {"SwitchCase": 1}],
+        "no-mixed-spaces-and-tabs": "error",
+        "quotes": ["warn", "single"],
+        "space-before-blocks": ["warn", { "functions": "always" }] ,
+        "no-undef": "warn",
+
+        "arrow-body-style": "error",
+        "arrow-parens": "error",
+        "arrow-spacing": "error",
+        "generator-star-spacing": "error",
+        "no-duplicate-imports": "error",
+        "no-useless-computed-key": "error",
+        "no-useless-constructor": "error",
+        "no-useless-rename": "error",
+        "no-var": "error",
+        "object-shorthand": "error",
+        "prefer-arrow-callback": "error",
+        "prefer-const": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error",
+        "prefer-template": "error",
+        "rest-spread-spacing": "error",
+        "template-curly-spacing": "error",
+        "yield-star-spacing": "error"
+    }
+}

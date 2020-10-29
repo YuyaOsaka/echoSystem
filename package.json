@@ -1,15 +1,21 @@
 {
-  "name": "helloworldskill",
+  "name": "speechskill",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint **/*.js --fix"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "ask-sdk-core": "^2.10.1",
     "ask-sdk-model": "^1.33.1"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.12.1",
+    "eslint-plugin-vue": "^7.1.0",
+    "prettier": "^2.1.2"
   }
 }
