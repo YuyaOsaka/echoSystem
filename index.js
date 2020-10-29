@@ -1,8 +1,8 @@
 const Alexa = require('ask-sdk-core');
-const AWS = require("aws-sdk");
+const AWS = require('aws-sdk');
 const dynamoDB = new AWS.DynamoDB.DocumentClient({
-    region: "ap-northeast-1"
-  });
+    region: 'ap-northeast-1'
+});
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -66,17 +66,17 @@ const GetAllUserIntentHandler = {
         // テーブル内のデータ件数を取得
         const params = {
             TableName: 'userList',
-          };
+        };
         const allUserList = [];
         const result = await dynamoDB.scan(params).promise();
         allUserList.push(...result.Items);
 
         // 取得した名前データをテキストに追加
-        let speechText = `当番表に登録されているメンバーは、`;
+        let speechText = '当番表に登録されているメンバーは、';
         for (const i in allUserList) {
             speechText += `${allUserList[i].name}さん、`;
         }
-        speechText += `です。`;
+        speechText += 'です。';
 
         return handlerInput.responseBuilder
             .speak(speechText)
