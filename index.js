@@ -57,6 +57,43 @@ const AddUserIntentHandler = {
     },
 };
 
+const DialogIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'DialogIntent';
+    },
+    handle(handlerInput) {
+        const speechText = `こんにちは。挨拶を返してください。`;
+
+        return handlerInput.responseBuilder
+            .speak(speechText)
+            .reprompt()
+            .getResponse();
+    },
+};
+
+const DialogHelloIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'DialogHelloIntent';
+    },
+    async handle(handlerInput) {
+        const speechText = `挨拶を返してくれてありがとう。挨拶スタンプをデータベースに登録します。`;
+        const params = {
+            TableName: 'userList',
+            Item: {
+                name: `特殊`,
+                stamp: `スタンプ`
+            }
+        };
+        await dynamoDB.put(params).promise();
+
+        return handlerInput.responseBuilder
+            .speak(speechText)
+            .getResponse();
+    },
+};
+
 const GetAllUserIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -91,7 +128,7 @@ const CancelAndStopIntentHandler = {
                 || handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent');
     },
     handle(handlerInput) {
-        const speechText = 'さようなら';
+        const speechText = '終了します';
 
         return handlerInput.responseBuilder
             .speak(speechText)
@@ -130,6 +167,8 @@ exports.handler = skillBuilder
         LaunchRequestHandler,
         HelloWorldIntentHandler,
         AddUserIntentHandler,
+        DialogIntentHandler,
+        DialogHelloIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
