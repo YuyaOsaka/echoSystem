@@ -63,7 +63,8 @@ const DialogIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogIntent';
     },
     handle(handlerInput) {
-        const speechText = `こんにちは。挨拶を返してください。`;
+        const speechText = `誰を追加しますか？まるまるさんを追加、のように教えてください。
+                            追加を終了する場合は、追加を終了と発話してください。`;
 
         return handlerInput.responseBuilder
             .speak(speechText)
@@ -72,24 +73,27 @@ const DialogIntentHandler = {
     },
 };
 
-const DialogHelloIntentHandler = {
+const DialogAddIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-            && handlerInput.requestEnvelope.request.intent.name === 'DialogHelloIntent';
+            && handlerInput.requestEnvelope.request.intent.name === 'DialogAddIntent';
     },
     async handle(handlerInput) {
-        const speechText = `挨拶を返してくれてありがとう。挨拶スタンプをデータベースに登録します。`;
+        // スロットからユーザー名を取得
+        const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+        // DynamoDBにユーザーを追加
         const params = {
             TableName: 'userList',
             Item: {
-                name: `特殊`,
-                stamp: `スタンプ`
+                name: inputName
             }
         };
         await dynamoDB.put(params).promise();
+        const speechText = `${inputName}さんを当番表に追加しました。`;
 
         return handlerInput.responseBuilder
             .speak(speechText)
+            .reprompt()
             .getResponse();
     },
 };
@@ -168,7 +172,7 @@ exports.handler = skillBuilder
         HelloWorldIntentHandler,
         AddUserIntentHandler,
         DialogIntentHandler,
-        DialogHelloIntentHandler,
+        DialogAddIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
