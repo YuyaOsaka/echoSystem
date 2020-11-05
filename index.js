@@ -11,15 +11,15 @@ const LaunchRequestHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
-        const launchRequestText = `このスキルではスピーチ当番の確認ができます。
+        const speechOutput = `このスキルではスピーチ当番の確認ができます。
                                     他にもユーザーの初期登録、ユーザーの追加、
                                     ユーザーの削除、登録されているユーザーの確認、
                                     当番のスキップが行えます。`;
-        const launchRequestRepromptText = `行う操作を教えてください。`;
+        const repromptSpeechOutput = `行う操作を教えてください。`;
 
         return handlerInput.responseBuilder
-            .speak(launchRequestText)
-            .reprompt(launchRequestRepromptText)
+            .speak(speechOutput)
+            .reprompt(repromptSpeechOutput)
             .getResponse();
     },
 };
@@ -40,10 +40,10 @@ const AddUserIntentHandler = {
             }
         };
         await dynamoDB.put(params).promise();
-        const addUserText = `${inputName}さんを当番表に追加しました。`;
+        const speechOutput = `${inputName}さんを当番表に追加しました。`;
 
         return handlerInput.responseBuilder
-            .speak(addUserText)
+            .speak(speechOutput)
             .getResponse();
     },
 };
@@ -54,13 +54,13 @@ const DialogIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogIntent';
     },
     handle(handlerInput) {
-        const dialogText = `誰を追加しますか？まるまるさんを追加、のように教えてください。
+        const speechOutput = `誰を追加しますか？まるまるさんを追加、のように教えてください。
                             追加を終了する場合は、追加を終了と発話してください。`;
-        const dialogRepromptText = `行う操作を教えてください。`;
+        const repromptSpeechOutput = `行う操作を教えてください。`;
 
         return handlerInput.responseBuilder
-            .speak(dialogText)
-            .reprompt(dialogRepromptText)
+            .speak(speechOutput)
+            .reprompt(repromptSpeechOutput)
             .getResponse();
     },
 };
@@ -81,12 +81,12 @@ const DialogAddIntentHandler = {
             }
         };
         await dynamoDB.put(params).promise();
-        const dialogAddText = `${inputName}さんを当番表に追加しました。`;
-        const dialogAddRepromptText = `終了しますか？終了する場合は、追加を終了と発話してください。`;
+        const speechOutput = `${inputName}さんを当番表に追加しました。`;
+        const repromptSpeechOutput = `終了しますか？終了する場合は、追加を終了と発話してください。`;
 
         return handlerInput.responseBuilder
-            .speak(dialogAddText)
-            .reprompt(dialogAddRepromptText)
+            .speak(speechOutput)
+            .reprompt(repromptSpeechOutput)
             .getResponse();
     },
 };
@@ -97,10 +97,10 @@ const DialogEndIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogEndIntent';
     },
     handle(handlerInput) {
-        const dialogEndText = `ユーザーの登録を終了します。`;
+        const speechOutput = `ユーザーの登録を終了します。`;
 
         return handlerInput.responseBuilder
-            .speak(dialogEndText)
+            .speak(speechOutput)
             .getResponse();
     },
 };
@@ -120,14 +120,14 @@ const GetAllUserIntentHandler = {
         allUserList.push(...result.Items);
 
         // 取得した名前データをテキストに追加
-        let getAllUserText = `当番表に登録されているメンバーは、`;
+        let speechOutput = `当番表に登録されているメンバーは、`;
         for (const i in allUserList) {
-            getAllUserText += `${allUserList[i].name}さん、`;
+            speechOutput += `${allUserList[i].name}さん、`;
         }
-        getAllUserText += `です。`;
+        speechOutput += `です。`;
 
         return handlerInput.responseBuilder
-            .speak(getAllUserText)
+            .speak(speechOutput)
             .getResponse();
     },
 };
