@@ -11,24 +11,15 @@ const LaunchRequestHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
-        const speechText = 'Hello World.';
+        const launchRequestText = `このスキルではスピーチ当番の確認ができます。
+                                    他にもユーザーの初期登録、ユーザーの追加、
+                                    ユーザーの削除、登録されているユーザーの確認、
+                                    当番のスキップが行えます。`;
+        const launchRequestRepromptText = `行う操作を教えてください。`;
 
         return handlerInput.responseBuilder
-            .speak(speechText)
-            .getResponse();
-    },
-};
-
-const HelloWorldIntentHandler = {
-    canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-            && handlerInput.requestEnvelope.request.intent.name === 'HelloWorldIntent';
-    },
-    handle(handlerInput) {
-        const speechText = 'Hello World Good Day.';
-
-        return handlerInput.responseBuilder
-            .speak(speechText)
+            .speak(launchRequestText)
+            .reprompt(launchRequestRepromptText)
             .getResponse();
     },
 };
@@ -49,10 +40,10 @@ const AddUserIntentHandler = {
             }
         };
         await dynamoDB.put(params).promise();
-        const speechText = `${inputName}さんを当番表に追加しました。`;
+        const addUserText = `${inputName}さんを当番表に追加しました。`;
 
         return handlerInput.responseBuilder
-            .speak(speechText)
+            .speak(addUserText)
             .getResponse();
     },
 };
@@ -63,12 +54,13 @@ const DialogIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogIntent';
     },
     handle(handlerInput) {
-        const speechText = `誰を追加しますか？まるまるさんを追加、のように教えてください。
+        const dialogText = `誰を追加しますか？まるまるさんを追加、のように教えてください。
                             追加を終了する場合は、追加を終了と発話してください。`;
+        const dialogRepromptText = `行う操作を教えてください。`;
 
         return handlerInput.responseBuilder
-            .speak(speechText)
-            .reprompt()
+            .speak(dialogText)
+            .reprompt(dialogRepromptText)
             .getResponse();
     },
 };
@@ -89,11 +81,26 @@ const DialogAddIntentHandler = {
             }
         };
         await dynamoDB.put(params).promise();
-        const speechText = `${inputName}さんを当番表に追加しました。`;
+        const dialogAddText = `${inputName}さんを当番表に追加しました。`;
+        const dialogAddRepromptText = `終了しますか？終了する場合は、追加を終了と発話してください。`;
 
         return handlerInput.responseBuilder
-            .speak(speechText)
-            .reprompt()
+            .speak(dialogAddText)
+            .reprompt(dialogAddRepromptText)
+            .getResponse();
+    },
+};
+
+const DialogEndIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'DialogEndIntent';
+    },
+    handle(handlerInput) {
+        const dialogEndText = `ユーザーの登録を終了します。`;
+
+        return handlerInput.responseBuilder
+            .speak(dialogEndText)
             .getResponse();
     },
 };
@@ -113,14 +120,14 @@ const GetAllUserIntentHandler = {
         allUserList.push(...result.Items);
 
         // 取得した名前データをテキストに追加
-        let speechText = '当番表に登録されているメンバーは、';
+        let getAllUserText = `当番表に登録されているメンバーは、`;
         for (const i in allUserList) {
-            speechText += `${allUserList[i].name}さん、`;
+            getAllUserText += `${allUserList[i].name}さん、`;
         }
-        speechText += 'です。';
+        getAllUserText += `です。`;
 
         return handlerInput.responseBuilder
-            .speak(speechText)
+            .speak(getAllUserText)
             .getResponse();
     },
 };
@@ -132,10 +139,8 @@ const CancelAndStopIntentHandler = {
                 || handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent');
     },
     handle(handlerInput) {
-        const speechText = '終了します';
-
         return handlerInput.responseBuilder
-            .speak(speechText)
+            .speak(`終了します`)
             .getResponse();
     },
 };
@@ -159,7 +164,7 @@ const ErrorHandler = {
         console.log(`Error handled: ${error.message}`);
 
         return handlerInput.responseBuilder
-            .speak('エラーが発生しました')
+            .speak(`エラーが発生しました`)
             .getResponse();
     },
 };
@@ -169,10 +174,10 @@ const skillBuilder = Alexa.SkillBuilders.custom();
 exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
-        HelloWorldIntentHandler,
         AddUserIntentHandler,
         DialogIntentHandler,
         DialogAddIntentHandler,
+        DialogEndIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
