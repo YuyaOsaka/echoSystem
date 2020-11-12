@@ -1,10 +1,8 @@
 const Alexa = require('ask-sdk-core');
-const Adapter = require('ask-sdk-dynamodb-persistence-adapter');
-const config = {tableName: 'userList', 
-                partition_key_name: 'id',  
-                attributesName: 'name', 
-                createTable: true};
-const DynamoDBAdapter = new Adapter.DynamoDbPersistenceAdapter(config);
+const AWS = require('aws-sdk');
+const dynamoDB = new AWS.DynamoDB.DocumentClient({
+    region: 'ap-northeast-1'
+});
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -34,18 +32,14 @@ const AddUserIntentHandler = {
     async handle(handlerInput) {
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
-        
-        // DynamoDBから現在のリストを取得
-        let allUserList = [];
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};    
-        allUserList = attributes.name; 
-
         // DynamoDBにユーザーを追加
-        allUserList.push(inputName);
-        attributesManager.setPersistentAttributes({'name':allUserList});
-        await attributesManager.savePersistentAttributes();
-
+        const params = {
+            TableName: 'userList',
+            Item: {
+                name: inputName
+            }
+        };
+        await dynamoDB.put(params).promise();
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
 
         return handlerInput.responseBuilder
@@ -61,34 +55,8 @@ const DialogIntentHandler = {
     },
     handle(handlerInput) {
         const speechOutput = `誰を追加しますか？まるまるさんを追加、のように教えてください。
-                            最初の一人を追加する場合は、まるまるさんを初期登録、と発話してください。
                             追加を終了する場合は、追加を終了と発話してください。`;
         const repromptSpeechOutput = `行う操作を教えてください。`;
-
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(repromptSpeechOutput)
-            .getResponse();
-    },
-};
-
-const DialogFirstAddIntentHandler = {
-    canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
-            && handlerInput.requestEnvelope.request.intent.name === 'DialogFirstAddIntent';
-    },
-    async handle(handlerInput) {
-        // スロットからユーザー名を取得
-        const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
-        const allUserList = [inputName];
-
-        // // DynamoDBにユーザーを追加
-        const attributesManager = handlerInput.attributesManager;
-        attributesManager.setPersistentAttributes({'name':allUserList});
-        await attributesManager.savePersistentAttributes();
-
-        const speechOutput = `${inputName}さんを追加します。`;
-        const repromptSpeechOutput = `終了しますか？終了する場合は、追加を終了と発話してください。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -105,19 +73,15 @@ const DialogAddIntentHandler = {
     async handle(handlerInput) {
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
-        
-        // DynamoDBから現在のリストを取得
-        let allUserList = [];
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        allUserList = attributes.name;
-
-        // // DynamoDBにユーザーを追加
-        allUserList.push(inputName);
-        attributesManager.setPersistentAttributes({'name':allUserList});
-        await attributesManager.savePersistentAttributes();
-
-        const speechOutput = `${inputName}さんを追加します。`;
+        // DynamoDBにユーザーを追加
+        const params = {
+            TableName: 'userList',
+            Item: {
+                name: inputName
+            }
+        };
+        await dynamoDB.put(params).promise();
+        const speechOutput = `${inputName}さんを当番表に追加しました。`;
         const repromptSpeechOutput = `終了しますか？終了する場合は、追加を終了と発話してください。`;
 
         return handlerInput.responseBuilder
@@ -147,16 +111,18 @@ const GetAllUserIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'GetAllUserIntent';
     },
     async handle(handlerInput) {
-        // テーブル内のデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        let allUserList = [];
-        allUserList = attributes.name;
+        // テーブル内のデータ件数を取得
+        const params = {
+            TableName: 'userList',
+        };
+        const allUserList = [];
+        const result = await dynamoDB.scan(params).promise();
+        allUserList.push(...result.Items);
 
         // 取得した名前データをテキストに追加
         let speechOutput = `当番表に登録されているメンバーは、`;
         for (const i in allUserList) {
-            speechOutput += `${allUserList[i]}さん、`;
+            speechOutput += `${allUserList[i].name}さん、`;
         }
         speechOutput += `です。`;
 
@@ -210,14 +176,12 @@ exports.handler = skillBuilder
         LaunchRequestHandler,
         AddUserIntentHandler,
         DialogIntentHandler,
-        DialogFirstAddIntentHandler,
         DialogAddIntentHandler,
         DialogEndIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
-    .withPersistenceAdapter(DynamoDBAdapter)
     .addErrorHandlers(ErrorHandler)
     .lambda();
 

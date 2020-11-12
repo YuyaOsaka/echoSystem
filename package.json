@@ -17,8 +17,5 @@
     "eslint": "^7.12.1",
     "eslint-plugin-vue": "^7.1.0",
     "prettier": "^2.1.2"
-  },
-  "ask-sdk": "^2.6.0",
-  "aws-sdk": "2.637.0",
-  "ask-sdk-dynamodb-persistence-adapter": "^2.9.0"
+  }
 }
