@@ -1,8 +1,8 @@
 const Alexa = require('ask-sdk-core');
 const Adapter = require('ask-sdk-dynamodb-persistence-adapter');
-const config = {tableName: 'userList', 
+const config = {tableName: 'userTable', 
                 partition_key_name: 'id',  
-                attributesName: 'name', 
+                attributesName: 'userList', 
                 createTable: true};
 const DynamoDBAdapter = new Adapter.DynamoDbPersistenceAdapter(config);
 
@@ -36,14 +36,13 @@ const AddUserIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBから現在のリストを取得
-        let allUserList = [];
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};    
-        allUserList = attributes.name; 
+        const allUserList = attributes.userList;
 
         // DynamoDBにユーザーを追加
         allUserList.push(inputName);
-        attributesManager.setPersistentAttributes({'name':allUserList});
+        attributesManager.setPersistentAttributes({'userList':allUserList});
         await attributesManager.savePersistentAttributes();
 
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
@@ -84,7 +83,7 @@ const DialogFirstAddIntentHandler = {
 
         // DynamoDBにユーザーを追加
         const attributesManager = handlerInput.attributesManager;
-        attributesManager.setPersistentAttributes({'name':allUserList});
+        attributesManager.setPersistentAttributes({'userList':allUserList});
         await attributesManager.savePersistentAttributes();
 
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
@@ -107,14 +106,13 @@ const DialogAddIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBから現在のリストを取得
-        let allUserList = [];
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};
-        allUserList = attributes.name;
+        const allUserList = attributes.userList;
         
         // DynamoDBにユーザーを追加
         allUserList.push(inputName);
-        attributesManager.setPersistentAttributes({'name':allUserList});
+        attributesManager.setPersistentAttributes({'userList':allUserList});
         await attributesManager.savePersistentAttributes();
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
@@ -150,8 +148,7 @@ const GetAllUserIntentHandler = {
         // テーブル内のデータを取得
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};
-        let allUserList = [];
-        allUserList = attributes.name;
+        const allUserList = [attributes.userList];
 
         // 取得した名前データをテキストに追加
         let speechOutput = `当番表に登録されているメンバーは、`;
