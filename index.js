@@ -1,9 +1,9 @@
 const Alexa = require('ask-sdk-core');
 const Adapter = require('ask-sdk-dynamodb-persistence-adapter');
 const config = {tableName: 'userTable', 
-                partition_key_name: 'id',  
-                attributesName: 'userList', 
-                createTable: true};
+    partition_key_name: 'id',  
+    attributesName: 'userList', 
+    createTable: true};
 const DynamoDBAdapter = new Adapter.DynamoDbPersistenceAdapter(config);
 
 const LaunchRequestHandler = {
@@ -17,7 +17,7 @@ const LaunchRequestHandler = {
                                     他にもユーザーの初期登録、ユーザーの追加、
                                     ユーザーの削除、登録されているユーザーの確認、
                                     当番のスキップが行えます。`;
-        const repromptSpeechOutput = `行う操作を教えてください。`;
+        const repromptSpeechOutput = '行う操作を教えてください。';
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -62,7 +62,7 @@ const DialogIntentHandler = {
         const speechOutput = `誰を追加しますか？まるまるさんを追加、のように教えてください。
                             最初の一人を追加する場合は、まるまるさんを初期登録、と発話してください。
                             追加を終了する場合は、追加を終了と発話してください。`;
-        const repromptSpeechOutput = `行う操作を教えてください。`;
+        const repromptSpeechOutput = '行う操作を教えてください。';
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -87,7 +87,7 @@ const DialogFirstAddIntentHandler = {
         await attributesManager.savePersistentAttributes();
 
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
-        const repromptSpeechOutput = `終了しますか？終了する場合は、追加を終了と発話してください。`;
+        const repromptSpeechOutput = '終了しますか？終了する場合は、追加を終了と発話してください。';
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -116,7 +116,7 @@ const DialogAddIntentHandler = {
         await attributesManager.savePersistentAttributes();
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
-        const repromptSpeechOutput = `終了しますか？終了する場合は、追加を終了と発話してください。`;
+        const repromptSpeechOutput = '終了しますか？終了する場合は、追加を終了と発話してください。';
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -131,7 +131,30 @@ const DialogEndIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogEndIntent';
     },
     handle(handlerInput) {
-        const speechOutput = `ユーザーの登録を終了します。`;
+        const speechOutput = 'ユーザーの登録を終了します。';
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+    },
+};
+
+const GetDutyIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'GetDutyIntent';
+    },
+    async handle(handlerInput) {
+        // テーブル内のデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        const attributes = await attributesManager.getPersistentAttributes() || {};
+
+        // 日付と絡めて当番番号を生成
+        // (当番番号の作成は【ユーザーは日付が変わったら次の当番を知りたい】で作成予定)
+        const dutyNumber = 1;
+
+        // 取得した名前データをテキストに追加
+        const speechOutput = `今日のスピーチ当番は、${attributes.userList[dutyNumber]}さんです。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -151,11 +174,11 @@ const GetAllUserIntentHandler = {
         const allUserList = [attributes.userList];
 
         // 取得した名前データをテキストに追加
-        let speechOutput = `当番表に登録されているメンバーは、`;
+        let speechOutput = '当番表に登録されているメンバーは、';
         for (const i in allUserList) {
             speechOutput += `${allUserList[i]}さん、`;
         }
-        speechOutput += `です。`;
+        speechOutput += 'です。';
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -171,7 +194,7 @@ const CancelAndStopIntentHandler = {
     },
     handle(handlerInput) {
         return handlerInput.responseBuilder
-            .speak(`終了します`)
+            .speak('終了します')
             .getResponse();
     },
 };
@@ -195,7 +218,7 @@ const ErrorHandler = {
         console.log(`Error handled: ${error.message}`);
 
         return handlerInput.responseBuilder
-            .speak(`エラーが発生しました`)
+            .speak('エラーが発生しました')
             .getResponse();
     },
 };
@@ -210,11 +233,12 @@ exports.handler = skillBuilder
         DialogFirstAddIntentHandler,
         DialogAddIntentHandler,
         DialogEndIntentHandler,
+        GetDutyIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
+
     .withPersistenceAdapter(DynamoDBAdapter)
     .addErrorHandlers(ErrorHandler)
     .lambda();
-
