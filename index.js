@@ -139,6 +139,29 @@ const DialogEndIntentHandler = {
     },
 };
 
+const GetDutyIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'GetDutyIntent';
+    },
+    async handle(handlerInput) {
+        // テーブル内のデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        const attributes = await attributesManager.getPersistentAttributes() || {};
+
+        // 日付と絡めて当番番号を生成
+        // (【ユーザーは日付が変わったら次の当番を知りたい】で作成予定)
+        const dutyNumber = 1;
+
+        // 取得した名前データをテキストに追加
+        const speechOutput = `今日のスピーチ当番は、${attributes.userList[dutyNumber]}さんです。`;
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+    },
+};
+
 const GetAllUserIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -210,6 +233,7 @@ exports.handler = skillBuilder
         DialogFirstAddIntentHandler,
         DialogAddIntentHandler,
         DialogEndIntentHandler,
+        GetDutyIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
@@ -217,4 +241,3 @@ exports.handler = skillBuilder
     .withPersistenceAdapter(DynamoDBAdapter)
     .addErrorHandlers(ErrorHandler)
     .lambda();
-
