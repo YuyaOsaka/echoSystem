@@ -86,9 +86,9 @@ const DialogFirstAddIntentHandler = {
         attributesManager.setPersistentAttributes({'userList':allUserList});
         await attributesManager.savePersistentAttributes();
 
-        const speechOutput = `${inputName}さんを当番表に追加しました。`;
-        const repromptSpeechOutput = '終了しますか？終了する場合は、追加を終了と発話してください。';
-
+        const speechOutput = `${inputName}さんを当番表に初期登録します。既にユーザーデータがある場合は上書きされます。よろしいですか？`;
+        const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
+        
         return handlerInput.responseBuilder
             .speak(speechOutput)
             .reprompt(repromptSpeechOutput)
