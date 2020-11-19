@@ -1,8 +1,9 @@
 const Alexa = require('ask-sdk-core');
 const Adapter = require('ask-sdk-dynamodb-persistence-adapter');
+const dayjs = require('dayjs');
 const config = {tableName: 'userTable', 
     partition_key_name: 'id',  
-    attributesName: 'userList', 
+    attributesName: 'userAndDate', 
     createTable: true};
 const DynamoDBAdapter = new Adapter.DynamoDbPersistenceAdapter(config);
 
@@ -37,14 +38,14 @@ const AddUserIntentHandler = {
 
         // DynamoDBから現在のリストを取得
         const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};    
-        const allUserList = attributes.userList;
-
+        const attributes = await attributesManager.getPersistentAttributes() || {};
+        const allUserList = JSON.parse(attributes.data);
+        
         // DynamoDBにユーザーを追加
-        allUserList.push(inputName);
-        attributesManager.setPersistentAttributes({'userList':allUserList});
+        allUserList.userList.push(inputName);
+        attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
         await attributesManager.savePersistentAttributes();
-
+        
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
 
         return handlerInput.responseBuilder
@@ -77,16 +78,24 @@ const DialogFirstAddIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogFirstAddIntent';
     },
     async handle(handlerInput) {
+        // 初期登録日を取得
+        const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
+        const serviceClientFactory = handlerInput.serviceClientFactory;
+        const upsServiceClient = serviceClientFactory.getUpsServiceClient();
+        const userTimeZone = await upsServiceClient.getSystemTimeZone(deviceId);
+        const currentDateTime = new Date(new Date().toLocaleString('ja-JP', {timeZone: userTimeZone}));
+        const firstAddDate = new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), currentDateTime.getDate());
+
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
-        const allUserList = [inputName];
+        const allUserList = {userList:[inputName], registrationDate:firstAddDate};
 
-        // DynamoDBにユーザーを追加
+        // DynamoDBにユーザーと登録日を追加
         const attributesManager = handlerInput.attributesManager;
-        attributesManager.setPersistentAttributes({'userList':allUserList});
+        attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
         await attributesManager.savePersistentAttributes();
 
-        const speechOutput = `${inputName}さんを当番表に初期登録します。既にユーザーデータがある場合は上書きされます。よろしいですか？`;
+        const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
         const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
         
         return handlerInput.responseBuilder
@@ -105,14 +114,14 @@ const DialogAddIntentHandler = {
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
-        // DynamoDBから現在のリストを取得
+        // DynamoDBからデータを取得
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};
-        const allUserList = attributes.userList;
-        
+        const allUserList = JSON.parse(attributes.data);
+
         // DynamoDBにユーザーを追加
-        allUserList.push(inputName);
-        attributesManager.setPersistentAttributes({'userList':allUserList});
+        allUserList.userList.push(inputName);
+        attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
         await attributesManager.savePersistentAttributes();
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
@@ -148,13 +157,26 @@ const GetDutyIntentHandler = {
         // テーブル内のデータを取得
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};
+        const currentData = JSON.parse(attributes.data);
 
-        // 日付と絡めて当番番号を生成
-        // (当番番号の作成は【ユーザーは日付が変わったら次の当番を知りたい】で作成予定)
-        const dutyNumber = 1;
+        // 現在日を取得
+        const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
+        const serviceClientFactory = handlerInput.serviceClientFactory;
+        const upsServiceClient = serviceClientFactory.getUpsServiceClient();
+        const userTimeZone = await upsServiceClient.getSystemTimeZone(deviceId);
+        const currentDateTime = new Date(new Date().toLocaleString('ja-JP', {timeZone: userTimeZone}));
+        
+        // 現在日を形式変換
+        const currentDate = dayjs(new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), 
+            currentDateTime.getDate())).format('YYYY/MM/DD');
+        // 初期登録日を形式変換
+        const addDate = dayjs(currentData.registrationDate).format('YYYY/MM/DD');
+        
+        // 現在日と初期登録日の差分算出し、当番を決定
+        const dutyNumber = dayjs(currentDate).diff(addDate, 'days') % currentData.userList.length;
 
-        // 取得した名前データをテキストに追加
-        const speechOutput = `今日のスピーチ当番は、${attributes.userList[dutyNumber]}さんです。`;
+        // 当番の名前データをテキストに追加
+        const speechOutput = `今日のスピーチ当番は、${currentData.userList[dutyNumber]}さんです。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -171,7 +193,8 @@ const GetAllUserIntentHandler = {
         // テーブル内のデータを取得
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};
-        const allUserList = [attributes.userList];
+        const currentData = JSON.parse(attributes.data);
+        const allUserList = currentData.userList;
 
         // 取得した名前データをテキストに追加
         let speechOutput = '当番表に登録されているメンバーは、';
@@ -238,7 +261,7 @@ exports.handler = skillBuilder
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
-
+    .withApiClient(new Alexa.DefaultApiClient())
     .withPersistenceAdapter(DynamoDBAdapter)
     .addErrorHandlers(ErrorHandler)
     .lambda();
