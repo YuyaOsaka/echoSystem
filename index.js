@@ -170,13 +170,13 @@ const GetDutyIntentHandler = {
         const currentDate = dayjs(new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), 
             currentDateTime.getDate())).format('YYYY/MM/DD');
         // 初期登録日を形式変換
-        const addDate = dayjs(currentData.registrationDate).format('YYYY/MM/DD');
+        const firstAddDate = dayjs(currentData.registrationDate).format('YYYY/MM/DD');
         
         // 現在日と初期登録日の差分算出し、当番を決定
-        const dutyNumber = dayjs(currentDate).diff(addDate, 'days') % currentData.userList.length;
+        const index = dayjs(currentDate).diff(firstAddDate, 'days') % currentData.userList.length;
 
         // 当番の名前データをテキストに追加
-        const speechOutput = `今日のスピーチ当番は、${currentData.userList[dutyNumber]}さんです。`;
+        const speechOutput = `今日のスピーチ当番は、${currentData.userList[index]}さんです。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -193,8 +193,7 @@ const GetAllUserIntentHandler = {
         // テーブル内のデータを取得
         const attributesManager = handlerInput.attributesManager;
         const attributes = await attributesManager.getPersistentAttributes() || {};
-        const currentData = JSON.parse(attributes.data);
-        const allUserList = currentData.userList;
+        const allUserList = JSON.parse(attributes.data).userList;
 
         // 取得した名前データをテキストに追加
         let speechOutput = '当番表に登録されているメンバーは、';
