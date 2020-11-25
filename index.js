@@ -198,6 +198,32 @@ const GetDutyIntentHandler = {
     },
 };
 
+const SkipIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'SkipIntent';
+    },
+    async handle(handlerInput) {
+        // テーブル内のデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        const attributes = await attributesManager.getPersistentAttributes() || {};
+        const currentData = JSON.parse(attributes.data);
+
+        // テーブルにデータを上書き
+        const updateData = {userList:currentData.userList, calledDate:currentData.calledDate,
+            numberOfCalls:currentData.numberOfCalls + 1};
+        attributesManager.setPersistentAttributes({'data':JSON.stringify(updateData)});
+        await attributesManager.savePersistentAttributes();
+
+        // 取得した名前データをテキストに追加
+        const speechOutput = `スピーチ当番のスキップが完了しました。`;
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+    },
+};
+
 const GetAllUserIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -270,6 +296,7 @@ exports.handler = skillBuilder
         DialogAddIntentHandler,
         DialogEndIntentHandler,
         GetDutyIntentHandler,
+        SkipIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
