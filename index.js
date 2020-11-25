@@ -153,11 +153,6 @@ const GetDutyIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'GetDutyIntent';
     },
     async handle(handlerInput) {
-        // テーブル内のデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        let attributes = await attributesManager.getPersistentAttributes() || {};
-        let currentData = JSON.parse(attributes.data);
-
         // 現在日を取得
         const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
         const serviceClientFactory = handlerInput.serviceClientFactory;
@@ -168,6 +163,11 @@ const GetDutyIntentHandler = {
         // 現在日を形式変換
         const currentDate = dayjs(new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), 
             currentDateTime.getDate())).format('YYYY/MM/DD');
+
+        // テーブル内のデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        let attributes = await attributesManager.getPersistentAttributes() || {};
+        let currentData = JSON.parse(attributes.data);
         
         // 最終呼び出し日を形式変換
         const lastCalledDate = dayjs(currentData.calledDate).format('YYYY/MM/DD');
@@ -176,7 +176,7 @@ const GetDutyIntentHandler = {
         const dateDiff = dayjs(currentDate).diff(lastCalledDate, 'days');
 
         // 呼び出し日が異なる場合、呼び出し日と回数を更新する
-        if(dateDiff !== 0){
+        if(dateDiff > 0){
             const allUserList = {userList:currentData.userList, calledDate:currentDate,
                 numberOfCalls:currentData.numberOfCalls + 1};
             attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
