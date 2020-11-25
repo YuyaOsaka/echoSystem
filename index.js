@@ -61,7 +61,6 @@ const DialogIntentHandler = {
     },
     handle(handlerInput) {
         const speechOutput = `誰を追加しますか？まるまるさんを追加、のように教えてください。
-                            最初の一人を追加する場合は、まるまるさんを初期登録、と発話してください。
                             追加を終了する場合は、追加を終了と発話してください。`;
         const repromptSpeechOutput = '行う操作を教えてください。';
 
@@ -78,7 +77,7 @@ const DialogFirstAddIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'DialogFirstAddIntent';
     },
     async handle(handlerInput) {
-        // 初期登録日を取得
+        // 登録日を取得
         const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
         const serviceClientFactory = handlerInput.serviceClientFactory;
         const upsServiceClient = serviceClientFactory.getUpsServiceClient();
@@ -88,9 +87,9 @@ const DialogFirstAddIntentHandler = {
 
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
-        const allUserList = {userList:[inputName], registrationDate:firstAddDate};
 
         // DynamoDBにユーザーと登録日を追加
+        const allUserList = {userList:[inputName], calledDate:firstAddDate, numberOfCalls:0};
         const attributesManager = handlerInput.attributesManager;
         attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
         await attributesManager.savePersistentAttributes();
@@ -154,11 +153,6 @@ const GetDutyIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'GetDutyIntent';
     },
     async handle(handlerInput) {
-        // テーブル内のデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        const currentData = JSON.parse(attributes.data);
-
         // 現在日を取得
         const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
         const serviceClientFactory = handlerInput.serviceClientFactory;
@@ -169,11 +163,31 @@ const GetDutyIntentHandler = {
         // 現在日を形式変換
         const currentDate = dayjs(new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), 
             currentDateTime.getDate())).format('YYYY/MM/DD');
-        // 初期登録日を形式変換
-        const firstAddDate = dayjs(currentData.registrationDate).format('YYYY/MM/DD');
+
+        // テーブル内のデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        let attributes = await attributesManager.getPersistentAttributes() || {};
+        let currentData = JSON.parse(attributes.data);
         
-        // 現在日と初期登録日の差分算出し、当番を決定
-        const index = dayjs(currentDate).diff(firstAddDate, 'days') % currentData.userList.length;
+        // 最終呼び出し日を形式変換
+        const lastCalledDate = dayjs(currentData.calledDate).format('YYYY/MM/DD');
+        
+        // 現在日と最終呼び出し日の差分を算出
+        const dateDiff = dayjs(currentDate).diff(lastCalledDate, 'days');
+
+        // 呼び出し日が異なる場合、呼び出し日と回数を更新する
+        if(dateDiff > 0){
+            const allUserList = {userList:currentData.userList, calledDate:currentDate,
+                numberOfCalls:currentData.numberOfCalls + 1};
+            attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
+            await attributesManager.savePersistentAttributes();
+
+            // データの再取得
+            attributes = await attributesManager.getPersistentAttributes() || {};
+            currentData = JSON.parse(attributes.data);
+        }
+
+        const index = currentData.numberOfCalls % currentData.userList.length;
 
         // 当番の名前データをテキストに追加
         const speechOutput = `今日のスピーチ当番は、${currentData.userList[index]}さんです。`;
