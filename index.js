@@ -215,7 +215,6 @@ const SkipIntentHandler = {
         attributesManager.setPersistentAttributes({'data':JSON.stringify(updateData)});
         await attributesManager.savePersistentAttributes();
 
-        // 取得した名前データをテキストに追加
         const speechOutput = `スピーチ当番のスキップが完了しました。`;
 
         return handlerInput.responseBuilder
