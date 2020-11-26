@@ -206,8 +206,8 @@ const SkipIntentHandler = {
     async handle(handlerInput) {
         // テーブル内のデータを取得
         const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        const currentData = JSON.parse(attributes.data);
+        let attributes = await attributesManager.getPersistentAttributes() || {};
+        let currentData = JSON.parse(attributes.data);
 
         // テーブルにデータを上書き
         const updateData = {userList:currentData.userList, calledDate:currentData.calledDate,
@@ -215,7 +215,12 @@ const SkipIntentHandler = {
         attributesManager.setPersistentAttributes({'data':JSON.stringify(updateData)});
         await attributesManager.savePersistentAttributes();
 
-        const speechOutput = `スピーチ当番のスキップが完了しました。`;
+        // 新しい当番の名前データをテキストに追加
+        attributes = await attributesManager.getPersistentAttributes() || {};
+        currentData = JSON.parse(attributes.data);
+        const index = currentData.numberOfCalls % currentData.userList.length;
+        const speechOutput = `スピーチ当番のスキップが完了しました。
+                                新しい当番は${currentData.userList[index]}さんです。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
