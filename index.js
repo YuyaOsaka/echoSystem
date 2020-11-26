@@ -267,25 +267,26 @@ const DeleteIntentHandler = {
         const allUserList = JSON.parse(attributes.data);
 
         // 取得した名前データをテキストに追加
-        let speechOutput;
+        if(allUserList.userList.length <= 1) {
+            return handlerInput.responseBuilder
+                .speak('リストが1名以下の場合は、削除を行えません。')
+                .getResponse();
+        }
         for (const i in allUserList.userList) {
             if(allUserList.userList[i] === inputName) {
-                if(allUserList.userList.length <= 1) {
-                    speechOutput = 'リストが1名以下の場合は、削除を行えません。'
-                    break;
-                }
-                speechOutput = `削除が完了しました。
-                                削除されたメンバーは、${allUserList.userList[i]}さんです。`;
+                const speechOutput = `削除が完了しました。削除されたメンバーは、
+                                        ${allUserList.userList[i]}さんです。`
                 allUserList.userList.splice(i, 1);
                 attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
                 await attributesManager.savePersistentAttributes()
-                break;
+                return handlerInput.responseBuilder
+                    .speak(speechOutput)
+                    .getResponse();
             }
-            speechOutput = `${inputName}さんは見つかりませんでした。`;
         }
 
         return handlerInput.responseBuilder
-            .speak(speechOutput)
+            .speak(`${inputName}さんは見つかりませんでした。`)
             .getResponse();
     },
 };
