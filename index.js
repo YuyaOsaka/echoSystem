@@ -176,7 +176,7 @@ const GetDutyIntentHandler = {
         const dateDiff = dayjs(currentDate).diff(lastCalledDate, 'days');
 
         // 呼び出し日が異なる場合、呼び出し日と回数を更新する
-        if(dateDiff > 0){
+        if(dateDiff > 0) {
             const allUserList = {userList:currentData.userList, calledDate:currentDate,
                 numberOfCalls:currentData.numberOfCalls + 1};
             attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
@@ -252,6 +252,44 @@ const GetAllUserIntentHandler = {
     },
 };
 
+const DeleteIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'DeleteIntent';
+    },
+    async handle(handlerInput) {
+        // スロットからユーザー名を取得
+        const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+
+        // DynamoDBからデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        const attributes = await attributesManager.getPersistentAttributes() || {};
+        const allUserList = JSON.parse(attributes.data);
+
+        // 取得した名前データをテキストに追加
+        let speechOutput;
+        for (const i in allUserList.userList) {
+            if(allUserList.userList[i] === inputName) {
+                if(allUserList.userList.length === 1) {
+                    speechOutput = 'リストが1名の場合は、削除を行えません。'
+                    break;
+                }
+                speechOutput = `削除が完了しました。
+                                削除されたメンバーは、${allUserList.userList[i]}さんです。`;
+                allUserList.userList.splice(i, 1);
+                attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
+                await attributesManager.savePersistentAttributes()
+                break;
+            }
+            speechOutput = `${inputName}さんは見つかりませんでした。`;
+        }
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+    },
+};
+
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -302,6 +340,7 @@ exports.handler = skillBuilder
         GetDutyIntentHandler,
         SkipIntentHandler,
         GetAllUserIntentHandler,
+        DeleteIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
