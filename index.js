@@ -198,6 +198,36 @@ const GetDutyIntentHandler = {
     },
 };
 
+const SkipIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'SkipIntent';
+    },
+    async handle(handlerInput) {
+        // テーブル内のデータを取得
+        const attributesManager = handlerInput.attributesManager;
+        let attributes = await attributesManager.getPersistentAttributes() || {};
+        let currentData = JSON.parse(attributes.data);
+
+        // テーブルにデータを上書き
+        const updateData = {userList:currentData.userList, calledDate:currentData.calledDate,
+            numberOfCalls:currentData.numberOfCalls + 1};
+        attributesManager.setPersistentAttributes({'data':JSON.stringify(updateData)});
+        await attributesManager.savePersistentAttributes();
+
+        // 新しい当番の名前データをテキストに追加
+        attributes = await attributesManager.getPersistentAttributes() || {};
+        currentData = JSON.parse(attributes.data);
+        const index = currentData.numberOfCalls % currentData.userList.length;
+        const speechOutput = `スピーチ当番のスキップが完了しました。
+                                新しい当番は${currentData.userList[index]}さんです。`;
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+    },
+};
+
 const GetAllUserIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -270,6 +300,7 @@ exports.handler = skillBuilder
         DialogAddIntentHandler,
         DialogEndIntentHandler,
         GetDutyIntentHandler,
+        SkipIntentHandler,
         GetAllUserIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
