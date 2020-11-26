@@ -270,8 +270,8 @@ const DeleteIntentHandler = {
         let speechOutput;
         for (const i in allUserList.userList) {
             if(allUserList.userList[i] === inputName) {
-                if(allUserList.userList.length === 1) {
-                    speechOutput = 'リストが1名の場合は、削除を行えません。'
+                if(allUserList.userList.length <= 1) {
+                    speechOutput = 'リストが1名以下の場合は、削除を行えません。'
                     break;
                 }
                 speechOutput = `削除が完了しました。
