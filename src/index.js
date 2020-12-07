@@ -6,6 +6,7 @@ const config = {tableName: 'userTable',
     attributesName: 'userAndDate', 
     createTable: true};
 const DynamoDBAdapter = new Adapter.DynamoDbPersistenceAdapter(config);
+const DynamoFunction = require('./dynamoDB.js');
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -15,9 +16,9 @@ const LaunchRequestHandler = {
     },
     handle(handlerInput) {
         const speechOutput = `このスキルではスピーチ当番の確認ができます。
-                                    他にもユーザーの初期登録、ユーザーの追加、
-                                    ユーザーの削除、登録されているユーザーの確認、
-                                    当番のスキップが行えます。`;
+                                他にもユーザーの初期登録、ユーザーの追加、
+                                ユーザーの削除、登録されているユーザーの確認、
+                                当番のスキップが行えます。`;
         const repromptSpeechOutput = '行う操作を教えてください。';
 
         return handlerInput.responseBuilder
@@ -33,18 +34,11 @@ const AddUserIntentHandler = {
             && handlerInput.requestEnvelope.request.intent.name === 'AddUserIntent';
     },
     async handle(handlerInput) {
-        // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
-        // DynamoDBから現在のリストを取得
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        const allUserList = JSON.parse(attributes.data);
-        
-        // DynamoDBにユーザーを追加
+        const allUserList = await DynamoFunction.getUserData(handlerInput);
         allUserList.userList.push(inputName);
-        attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
-        await attributesManager.savePersistentAttributes();
+        DynamoFunction.putUserData(handlerInput, allUserList);
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
 
@@ -90,9 +84,7 @@ const DialogFirstAddIntentHandler = {
 
         // DynamoDBにユーザーと登録日を追加
         const allUserList = {userList:[inputName], calledDate:firstAddDate, numberOfCalls:0};
-        const attributesManager = handlerInput.attributesManager;
-        attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
-        await attributesManager.savePersistentAttributes();
+        DynamoFunction.putUserData(handlerInput, allUserList);
 
         const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
         const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
@@ -114,14 +106,11 @@ const DialogAddIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBからデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        const allUserList = JSON.parse(attributes.data);
+        const allUserList = await DynamoFunction.getUserData(handlerInput);
 
         // DynamoDBにユーザーを追加
         allUserList.userList.push(inputName);
-        attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
-        await attributesManager.savePersistentAttributes();
+        DynamoFunction.putUserData(handlerInput, allUserList);
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
         const repromptSpeechOutput = '終了しますか？終了する場合は、追加を終了と発話してください。';
@@ -165,31 +154,21 @@ const GetDutyIntentHandler = {
             currentDateTime.getDate())).format('YYYY/MM/DD');
 
         // テーブル内のデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        let attributes = await attributesManager.getPersistentAttributes() || {};
-        let currentData = JSON.parse(attributes.data);
+        let currentData = await DynamoFunction.getUserData(handlerInput);
         
-        // 最終呼び出し日を形式変換
+        // 最終呼び出しが本日か異なるか判定
         const lastCalledDate = dayjs(currentData.calledDate).format('YYYY/MM/DD');
-        
-        // 現在日と最終呼び出し日の差分を算出
         const dateDiff = dayjs(currentDate).diff(lastCalledDate, 'days');
-
-        // 呼び出し日が異なる場合、呼び出し日と回数を更新する
         if(dateDiff > 0) {
             const allUserList = {userList:currentData.userList, calledDate:currentDate,
                 numberOfCalls:currentData.numberOfCalls + 1};
-            attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
-            await attributesManager.savePersistentAttributes();
+            DynamoFunction.putUserData(handlerInput, allUserList);
 
             // データの再取得
-            attributes = await attributesManager.getPersistentAttributes() || {};
-            currentData = JSON.parse(attributes.data);
+            currentData = await DynamoFunction.getUserData(handlerInput);
         }
 
         const index = currentData.numberOfCalls % currentData.userList.length;
-
-        // 当番の名前データをテキストに追加
         const speechOutput = `今日のスピーチ当番は、${currentData.userList[index]}さんです。`;
 
         return handlerInput.responseBuilder
@@ -205,22 +184,19 @@ const SkipIntentHandler = {
     },
     async handle(handlerInput) {
         // テーブル内のデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        let attributes = await attributesManager.getPersistentAttributes() || {};
-        let currentData = JSON.parse(attributes.data);
+        let currentData = await DynamoFunction.getUserData(handlerInput);
 
         // テーブルにデータを上書き
         const updateData = {userList:currentData.userList, calledDate:currentData.calledDate,
             numberOfCalls:currentData.numberOfCalls + 1};
-        attributesManager.setPersistentAttributes({'data':JSON.stringify(updateData)});
-        await attributesManager.savePersistentAttributes();
+        DynamoFunction.putUserData(handlerInput, updateData);
 
         // 新しい当番の名前データをテキストに追加
-        attributes = await attributesManager.getPersistentAttributes() || {};
-        currentData = JSON.parse(attributes.data);
+        currentData = await DynamoFunction.getUserData(handlerInput);
         const index = currentData.numberOfCalls % currentData.userList.length;
-        const speechOutput = `スピーチ当番のスキップが完了しました。
-                                新しい当番は${currentData.userList[index]}さんです。`;
+        const previousNumber = (currentData.numberOfCalls - 1) % currentData.userList.length;
+        const speechOutput = `当番を${currentData.userList[previousNumber]}さんから
+                                ${currentData.userList[index]}さんに変更しました。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -235,14 +211,12 @@ const GetAllUserIntentHandler = {
     },
     async handle(handlerInput) {
         // テーブル内のデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        const allUserList = JSON.parse(attributes.data).userList;
+        const allUserList = await DynamoFunction.getUserData(handlerInput);
 
         // 取得した名前データをテキストに追加
         let speechOutput = '当番表に登録されているメンバーは、';
-        for (const i in allUserList) {
-            speechOutput += `${allUserList[i]}さん、`;
+        for (const i in allUserList.userList) {
+            speechOutput += `${allUserList.userList[i]}さん、`;
         }
         speechOutput += 'です。';
 
@@ -262,9 +236,7 @@ const DeleteIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBからデータを取得
-        const attributesManager = handlerInput.attributesManager;
-        const attributes = await attributesManager.getPersistentAttributes() || {};
-        const allUserList = JSON.parse(attributes.data);
+        const allUserList = await DynamoFunction.getUserData(handlerInput);
 
         // 取得した名前データをテキストに追加
         if(allUserList.userList.length <= 1) {
@@ -277,8 +249,7 @@ const DeleteIntentHandler = {
                 const speechOutput = `削除が完了しました。削除されたメンバーは、
                                         ${allUserList.userList[i]}さんです。`
                 allUserList.userList.splice(i, 1);
-                attributesManager.setPersistentAttributes({'data':JSON.stringify(allUserList)});
-                await attributesManager.savePersistentAttributes()
+                DynamoFunction.putUserData(handlerInput, allUserList);
                 return handlerInput.responseBuilder
                     .speak(speechOutput)
                     .getResponse();
