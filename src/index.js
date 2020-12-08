@@ -1,12 +1,12 @@
-const Alexa = require('ask-sdk-core');
-const Adapter = require('ask-sdk-dynamodb-persistence-adapter');
+const alexa = require('ask-sdk-core');
+const adapter = require('ask-sdk-dynamodb-persistence-adapter');
 const dayjs = require('dayjs');
 const config = {tableName: 'userTable', 
     partition_key_name: 'id',  
     attributesName: 'userAndDate', 
     createTable: true};
-const DynamoDBAdapter = new Adapter.DynamoDbPersistenceAdapter(config);
-const DynamoFunction = require('./dynamoDB.js');
+const dynamoDBAdapter = new adapter.DynamoDbPersistenceAdapter(config);
+const dynamoDB = require('./dynamoDB.js');
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -36,9 +36,9 @@ const AddUserIntentHandler = {
     async handle(handlerInput) {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
-        const allUserList = await DynamoFunction.getUserData(handlerInput);
+        const allUserList = await dynamoDB.getUserData(handlerInput);
         allUserList.userList.push(inputName);
-        DynamoFunction.putUserData(handlerInput, allUserList);
+        dynamoDB.putUserData(handlerInput, allUserList);
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
 
@@ -84,7 +84,7 @@ const DialogFirstAddIntentHandler = {
 
         // DynamoDBにユーザーと登録日を追加
         const allUserList = {userList:[inputName], calledDate:firstAddDate, numberOfCalls:0};
-        DynamoFunction.putUserData(handlerInput, allUserList);
+        dynamoDB.putUserData(handlerInput, allUserList);
 
         const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
         const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
@@ -106,11 +106,11 @@ const DialogAddIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBからデータを取得
-        const allUserList = await DynamoFunction.getUserData(handlerInput);
+        const allUserList = await dynamoDB.getUserData(handlerInput);
 
         // DynamoDBにユーザーを追加
         allUserList.userList.push(inputName);
-        DynamoFunction.putUserData(handlerInput, allUserList);
+        dynamoDB.putUserData(handlerInput, allUserList);
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
         const repromptSpeechOutput = '終了しますか？終了する場合は、追加を終了と発話してください。';
@@ -154,7 +154,7 @@ const GetDutyIntentHandler = {
             currentDateTime.getDate())).format('YYYY/MM/DD');
 
         // テーブル内のデータを取得
-        let currentData = await DynamoFunction.getUserData(handlerInput);
+        let currentData = await dynamoDB.getUserData(handlerInput);
         
         // 最終呼び出しが本日か異なるか判定
         const lastCalledDate = dayjs(currentData.calledDate).format('YYYY/MM/DD');
@@ -162,10 +162,10 @@ const GetDutyIntentHandler = {
         if(dateDiff > 0) {
             const allUserList = {userList:currentData.userList, calledDate:currentDate,
                 numberOfCalls:currentData.numberOfCalls + 1};
-            DynamoFunction.putUserData(handlerInput, allUserList);
+                dynamoDB.putUserData(handlerInput, allUserList);
 
             // データの再取得
-            currentData = await DynamoFunction.getUserData(handlerInput);
+            currentData = await dynamoDB.getUserData(handlerInput);
         }
 
         const index = currentData.numberOfCalls % currentData.userList.length;
@@ -184,15 +184,15 @@ const SkipIntentHandler = {
     },
     async handle(handlerInput) {
         // テーブル内のデータを取得
-        let currentData = await DynamoFunction.getUserData(handlerInput);
+        let currentData = await dynamoDB.getUserData(handlerInput);
 
         // テーブルにデータを上書き
         const updateData = {userList:currentData.userList, calledDate:currentData.calledDate,
             numberOfCalls:currentData.numberOfCalls + 1};
-        DynamoFunction.putUserData(handlerInput, updateData);
+        dynamoDB.putUserData(handlerInput, updateData);
 
         // 新しい当番の名前データをテキストに追加
-        currentData = await DynamoFunction.getUserData(handlerInput);
+        currentData = await dynamoDB.getUserData(handlerInput);
         const index = currentData.numberOfCalls % currentData.userList.length;
         const previousNumber = (currentData.numberOfCalls - 1) % currentData.userList.length;
         const speechOutput = `当番を${currentData.userList[previousNumber]}さんから
@@ -211,7 +211,7 @@ const GetAllUserIntentHandler = {
     },
     async handle(handlerInput) {
         // テーブル内のデータを取得
-        const allUserList = await DynamoFunction.getUserData(handlerInput);
+        const allUserList = await dynamoDB.getUserData(handlerInput);
 
         // 取得した名前データをテキストに追加
         let speechOutput = '当番表に登録されているメンバーは、';
@@ -236,7 +236,7 @@ const DeleteIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBからデータを取得
-        const allUserList = await DynamoFunction.getUserData(handlerInput);
+        const allUserList = await dynamoDB.getUserData(handlerInput);
 
         // 取得した名前データをテキストに追加
         if(allUserList.userList.length <= 1) {
@@ -249,7 +249,7 @@ const DeleteIntentHandler = {
                 const speechOutput = `削除が完了しました。削除されたメンバーは、
                                         ${allUserList.userList[i]}さんです。`
                 allUserList.userList.splice(i, 1);
-                DynamoFunction.putUserData(handlerInput, allUserList);
+                dynamoDB.putUserData(handlerInput, allUserList);
                 return handlerInput.responseBuilder
                     .speak(speechOutput)
                     .getResponse();
@@ -299,7 +299,7 @@ const ErrorHandler = {
     },
 };
 
-const skillBuilder = Alexa.SkillBuilders.custom();
+const skillBuilder = alexa.SkillBuilders.custom();
 
 exports.handler = skillBuilder
     .addRequestHandlers(
@@ -316,7 +316,7 @@ exports.handler = skillBuilder
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
-    .withApiClient(new Alexa.DefaultApiClient())
-    .withPersistenceAdapter(DynamoDBAdapter)
+    .withApiClient(new alexa.DefaultApiClient())
+    .withPersistenceAdapter(dynamoDBAdapter)
     .addErrorHandlers(ErrorHandler)
     .lambda();
