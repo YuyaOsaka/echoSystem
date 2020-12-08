@@ -1,0 +1,228 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "スピーチ当番",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AddUserIntent",
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "USERNAME"
+                        }
+                    ],
+                    "samples": [
+                        "{name} さんを新しく追加",
+                        "{name} さんを当番表に入れて",
+                        "{name} さんを新規追加"
+                    ]
+                },
+                {
+                    "name": "GetAllUserIntent",
+                    "slots": [],
+                    "samples": [
+                        "リストを教えて",
+                        "登録されている人を教えて"
+                    ]
+                },
+                {
+                    "name": "DialogAddIntent",
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "USERNAME"
+                        }
+                    ],
+                    "samples": [
+                        "{name} さんを追加"
+                    ]
+                },
+                {
+                    "name": "DialogIntent",
+                    "slots": [],
+                    "samples": [
+                        "特殊操作",
+                        "対話機能",
+                        "一括登録",
+                        "対話して登録"
+                    ]
+                },
+                {
+                    "name": "DialogEndIntent",
+                    "slots": [],
+                    "samples": [
+                        "登録を終了",
+                        "追加を終了"
+                    ]
+                },
+                {
+                    "name": "DialogFirstAddIntent",
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "USERNAME",
+                            "samples": [
+                                "{name} さんを初期登録"
+                            ]
+                        }
+                    ],
+                    "samples": [
+                        "{name} さんを初期登録"
+                    ]
+                },
+                {
+                    "name": "GetDutyIntent",
+                    "slots": [],
+                    "samples": [
+                        "本日の当番",
+                        "今日の当番を教えて"
+                    ]
+                },
+                {
+                    "name": "SkipIntent",
+                    "slots": [],
+                    "samples": [
+                        "順番を飛ばして",
+                        "当番をスキップ"
+                    ]
+                },
+                {
+                    "name": "DeleteIntent",
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "USERNAME"
+                        }
+                    ],
+                    "samples": [
+                        "{name} さんを当番表から抜いて",
+                        "{name} さんを削除"
+                    ]
+                },
+                {
+                    "name": "AddHelloIntent",
+                    "slots": [],
+                    "samples": [
+                        "何が起こっているか教えて",
+                        "動作を教えて"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "USERNAME",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "山本"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "林"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "山田"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "yes",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "そのとおり"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "おねがい"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "そう"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "うん"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "いいよ"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "はい"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "dialog": {
+            "intents": [
+                {
+                    "name": "DialogFirstAddIntent",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "USERNAME",
+                            "confirmationRequired": true,
+                            "elicitationRequired": true,
+                            "prompts": {
+                                "confirmation": "Confirm.Slot.607648114345.1472063420211",
+                                "elicitation": "Elicit.Slot.607648114345.1472063420211"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "delegationStrategy": "ALWAYS"
+        },
+        "prompts": [
+            {
+                "id": "Confirm.Slot.607648114345.1472063420211",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "{name} さんを当番表に初期登録します。既にユーザーデータがある場合は上書きされます。よろしいですか？"
+                    }
+                ]
+            },
+            {
+                "id": "Elicit.Slot.607648114345.1472063420211",
+                "variations": [
+                    {
+                        "type": "PlainText",
+                        "value": "最初の一人を追加する場合は、まるまるさんを初期登録、と発話してください。もしくは追加を終了、と宣言してください。"
+                    }
+                ]
+            }
+        ]
+    }
+}
