@@ -4,16 +4,16 @@ describe("日付取得関数のモックテスト", () => {
     it("モック化できているか", () => {
         const designatedDate = "2020/12/09";
 
-        jest.spyOn(day, 'getDate').mockReturnValue(designatedDate);
+        jest.spyOn(day, 'getFormartedDate').mockReturnValueOnce(designatedDate);
         
-        expect(day.getDate()).toBe('2020/12/09');
+        expect(day.getFormartedDate()).toBe('2020/12/09');
     });
 });
 
 describe("日付比較関数のモックテスト", () => {
     it("モック化できているか", () => {
-        jest.spyOn(day, 'compareDates').mockReturnValue(true);
+        jest.spyOn(day, 'isDifferentDate').mockReturnValueOnce(true);
         
-        expect(day.compareDates()).toBe(true);
+        expect(day.isDifferentDate()).toBe(true);
     });
 });

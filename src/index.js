@@ -143,13 +143,13 @@ const GetDutyIntentHandler = {
     },
     async handle(handlerInput) {
         // 現在日を取得
-        const currentDate = day.getDate();
+        const currentDate = day.getFormartedDate();
 
         // テーブル内のデータを取得
         let currentData = await dynamoDB.getUserData(handlerInput);
         const lastCalledDate = currentData.calledDate;
 
-        if(day.compareDates(currentDate, lastCalledDate) === true) {
+        if(day.isDifferentDate(currentDate, lastCalledDate)) {
             const allUserList = {userList:currentData.userList, calledDate:currentDate,
                 numberOfCalls:currentData.numberOfCalls + 1};
                 dynamoDB.putUserData(handlerInput, allUserList);
