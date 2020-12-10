@@ -1,11 +1,10 @@
 const alexa = require('ask-sdk-core');
+const adapter = require('ask-sdk-dynamodb-persistence-adapter');
 const dynamoDB = require('./dynamoDB.js');
 const day = require('./day.js');
-const adapter = require('ask-sdk-dynamodb-persistence-adapter');
 const config = {tableName: 'userTable', 
     partition_key_name: 'id',  
-    attributesName: 'userAndDate', 
-    createTable: true};
+    attributesName: 'userAndDate'};
 const dynamoDBAdapter = new adapter.DynamoDbPersistenceAdapter(config);
 
 const LaunchRequestHandler = {
@@ -72,12 +71,7 @@ const DialogFirstAddIntentHandler = {
     },
     async handle(handlerInput) {
         // 登録日を取得
-        const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
-        const serviceClientFactory = handlerInput.serviceClientFactory;
-        const upsServiceClient = serviceClientFactory.getUpsServiceClient();
-        const userTimeZone = await upsServiceClient.getSystemTimeZone(deviceId);
-        const currentDateTime = new Date(new Date().toLocaleString('ja-JP', {timeZone: userTimeZone}));
-        const firstAddDate = new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), currentDateTime.getDate());
+        const firstAddDate = day.getFormartedDate();
 
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
