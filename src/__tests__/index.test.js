@@ -4,13 +4,14 @@ const model = './models/ja-JP.json';
 const handler = './src/index.js';
 const getUserData = require('../dynamoDB');
 const day = require('../day');
+const dynamoDB = require('../dynamoDB');
 
 const alexa = va.VirtualAlexa.Builder()
     .handler(handler)
     .interactionModelFile(model)
     .create();
 
-describe('スキルの起動テスト', () => {
+describe('標準搭載インテントのテスト', () => {
     it('スキル起動時のメッセージ', async () => {
         const launchResponse = await alexa.launch();
         expect(launchResponse.response.outputSpeech.ssml)
@@ -44,6 +45,11 @@ describe('DBを利用するカスタムインテントの動作テスト', () =>
     };
     const jsonTextSecondTime = {
         userList: [ '山田', '斎藤' ],
+        calledDate: '2020-12-09T00:00:00.000Z',
+        numberOfCalls: 1
+    };
+    const onlyOneUser = {
+        userList: [ '山田' ],
         calledDate: '2020-12-09T00:00:00.000Z',
         numberOfCalls: 1
     };
@@ -91,10 +97,23 @@ describe('DBを利用するカスタムインテントの動作テスト', () =>
         expect(getAllUserResponse.response.outputSpeech.ssml)
     });
 
-    it('DeleteIntentの動作テスト', async () => {
+    it('DeleteIntentの正常時動作テスト', async () => {
         const deleteResponse = await alexa.intend("DeleteIntent", {name: "斎藤"});
         expect(deleteResponse.response.outputSpeech.ssml)
             .toBe(`<speak>削除が完了しました。削除されたメンバーは、
                                         斎藤さんです。</speak>`);
+    });
+
+    it('DeleteIntentでユーザーが見つからなかった場合の動作テスト', async () => {
+        const deleteResponse = await alexa.intend("DeleteIntent", {name: "高田"});
+        expect(deleteResponse.response.outputSpeech.ssml)
+            .toBe(`<speak>高田さんは見つかりませんでした。</speak>`);
+    });
+
+    it('DeleteIntent起動時、当番表に一人だった場合の動作テスト', async () => {
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValueOnce(onlyOneUser);
+        const deleteResponse = await alexa.intend("DeleteIntent", {name: "山田"});
+        expect(deleteResponse.response.outputSpeech.ssml)
+            .toBe(`<speak>リストが1名以下の場合は、削除を行えません。</speak>`);
     });
 });
