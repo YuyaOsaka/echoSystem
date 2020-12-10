@@ -1,12 +1,12 @@
 const alexa = require('ask-sdk-core');
+const dynamoDB = require('./dynamoDB.js');
+const day = require('./day.js');
 const adapter = require('ask-sdk-dynamodb-persistence-adapter');
-const dayjs = require('dayjs');
 const config = {tableName: 'userTable', 
     partition_key_name: 'id',  
     attributesName: 'userAndDate', 
     createTable: true};
 const dynamoDBAdapter = new adapter.DynamoDbPersistenceAdapter(config);
-const dynamoDB = require('./dynamoDB.js');
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -143,23 +143,13 @@ const GetDutyIntentHandler = {
     },
     async handle(handlerInput) {
         // 現在日を取得
-        const deviceId = handlerInput.requestEnvelope.context.System.device.deviceId;
-        const serviceClientFactory = handlerInput.serviceClientFactory;
-        const upsServiceClient = serviceClientFactory.getUpsServiceClient();
-        const userTimeZone = await upsServiceClient.getSystemTimeZone(deviceId);
-        const currentDateTime = new Date(new Date().toLocaleString('ja-JP', {timeZone: userTimeZone}));
-        
-        // 現在日を形式変換
-        const currentDate = dayjs(new Date(currentDateTime.getFullYear(), currentDateTime.getMonth(), 
-            currentDateTime.getDate())).format('YYYY/MM/DD');
+        const currentDate = day.getFormartedDate();
 
         // テーブル内のデータを取得
         let currentData = await dynamoDB.getUserData(handlerInput);
-        
-        // 最終呼び出しが本日か異なるか判定
-        const lastCalledDate = dayjs(currentData.calledDate).format('YYYY/MM/DD');
-        const dateDiff = dayjs(currentDate).diff(lastCalledDate, 'days');
-        if(dateDiff > 0) {
+        const lastCalledDate = currentData.calledDate;
+
+        if(day.isDifferentDate(currentDate, lastCalledDate)) {
             const allUserList = {userList:currentData.userList, calledDate:currentDate,
                 numberOfCalls:currentData.numberOfCalls + 1};
                 dynamoDB.putUserData(handlerInput, allUserList);
