@@ -93,8 +93,12 @@ describe('AddUserIntentのテスト', () => {
 
 describe('DialogFirstAddIntentのテスト', () => {
     it('「山田」を初期登録した際に、「山田」を含んだ返答を行うことを確認', async () => {
-        const firstAddResponse = await alexa.intend("DialogFirstAddIntent", {name: "山田"});
-        expect(firstAddResponse.response.outputSpeech.ssml)
+        const request = await alexa.request()
+            .intent("DialogFirstAddIntent")
+            .slot("name", "山田")
+            .dialogState("COMPLETED")
+        const response = await request.send();
+        expect(response.prompt())
             .toBe(`<speak>山田さんを当番表に初期登録しました。</speak>`);
     });
 });
