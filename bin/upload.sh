@@ -3,5 +3,5 @@
 zip -r nodejs.zip ./
 
 aws lambda update-function-code \
-    --function-name HelloWorldTestSkill \
+    --function-name SpeechOnDuty \
     --zip-file fileb://nodejs.zip
