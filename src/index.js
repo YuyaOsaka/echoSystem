@@ -2,6 +2,7 @@ const alexa = require('ask-sdk-core');
 const adapter = require('ask-sdk-dynamodb-persistence-adapter');
 const dynamoDB = require('./dynamoDB.js');
 const day = require('./day.js');
+const yomigana = require('./yomigana.js');
 const config = {tableName: 'userTable', 
     partition_key_name: 'id',  
     attributesName: 'userAndDate',
@@ -35,10 +36,11 @@ const AddUserIntentHandler = {
     },
     async handle(handlerInput) {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+        const inputNameReading = await yomigana.getYomigana(inputName);
 
         const allUserList = await dynamoDB.getUserData(handlerInput);
-        allUserList.userList.push(inputName);
-        dynamoDB.putUserData(handlerInput, allUserList);
+        allUserList.userList.push({name:inputName, read:inputNameReading});
+        await dynamoDB.putUserData(handlerInput, allUserList);
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
 
@@ -76,14 +78,15 @@ const DialogFirstAddIntentHandler = {
 
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+        const inputNameReading = await yomigana.getYomigana(inputName);
 
         // DynamoDBにユーザーと登録日を追加
-        const allUserList = {userList:[inputName], calledDate:firstAddDate, DutyName:inputName};
-        dynamoDB.putUserData(handlerInput, allUserList);
+        const allUserList = {userList:[{name:inputName, read:inputNameReading}], calledDate:firstAddDate, dutyName:inputName};
+        await dynamoDB.putUserData(handlerInput, allUserList);
 
         const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
         const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
-        
+
         return handlerInput.responseBuilder
             .speak(speechOutput)
             .reprompt(repromptSpeechOutput)
@@ -99,12 +102,13 @@ const DialogAddIntentHandler = {
     async handle(handlerInput) {
         // スロットからユーザー名を取得
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+        const inputNameReading = await yomigana.getYomigana(inputName);
 
         // DynamoDBからデータを取得
         const allUserList = await dynamoDB.getUserData(handlerInput);
 
         // DynamoDBにユーザーを追加
-        allUserList.userList.push(inputName);
+        allUserList.userList.push({name:inputName, read:inputNameReading});
         dynamoDB.putUserData(handlerInput, allUserList);
         
         const speechOutput = `${inputName}さんを当番表に追加しました。`;
@@ -148,21 +152,21 @@ const GetDutyIntentHandler = {
 
         if(day.isDifferentDate(currentDate, lastCalledDate)) {
             for (const i in currentData.userList) {
-                if(currentData.userList[i] === currentData.DutyName){
+                if(currentData.userList[i].name === currentData.DutyName){
                     if (i === currentData.userList.length) {
-                        newDuty = currentData.userList[0];
+                        newDuty = currentData.userList[0].name;
                     } else {
-                        newDuty = currentData.userList[i+1];
+                        newDuty = currentData.userList[i+1].name;
                     }
                 }
             }
             updateData = {userList:currentData.userList, 
                 calledDate:currentData.calledDate,
-                DutyName:newDuty};
+                dutyName:newDuty};
             dynamoDB.putUserData(handlerInput, updateData);
             currentData = await dynamoDB.getUserData(handlerInput);
         }
-        const speechOutput = `今日のスピーチ当番は、${currentData.DutyName}さんです。`;
+        const speechOutput = `今日のスピーチ当番は、${currentData.dutyName}さんです。`;
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -180,27 +184,24 @@ const SkipIntentHandler = {
         let currentData = await dynamoDB.getUserData(handlerInput);
         let previousDuty;
         let newDuty;
-        let updateData;
 
         // テーブルに当番データを上書き
         for (let i = 0; i<currentData.userList.length; i++) {
-            if (currentData.userList[i] === currentData.DutyName) {
-                if (i === currentData.userList.length-1) {
-                    newDuty = currentData.userList[0];
-                } else {
-                    newDuty = currentData.userList[i+1];
-                }
-                previousDuty = currentData.userList[i];
+            if (currentData.userList[i].name === currentData.dutyName) {
+                newDuty = i === currentData.userList.length-1 ? 
+                        currentData.userList[0].name : 
+                        currentData.userList[i+1].name;
+                previousDuty = currentData.userList[i].name;
             }
         }
-        updateData = {userList:currentData.userList, 
+        const updateData = {userList:currentData.userList, 
             calledDate:currentData.calledDate,
-            DutyName:newDuty};
+            dutyName:newDuty};
         dynamoDB.putUserData(handlerInput, updateData);
 
         // 新しい当番の名前データをテキストに追加
         currentData = await dynamoDB.getUserData(handlerInput);
-        const speechOutput = `当番を${previousDuty}さんから${currentData.DutyName}さんに変更しました。`;
+        const speechOutput = `当番を${previousDuty}さんから${currentData.dutyName}さんに変更しました。`;
         
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -219,8 +220,8 @@ const GetAllUserIntentHandler = {
 
         // 取得した名前データをテキストに追加
         let speechOutput = '当番表に登録されているメンバーは、';
-        for (const i in currentData.userList) {
-            speechOutput += `${currentData.userList[i]}さん、`;
+        for (let i = 0; i<currentData.userList.length; i++) {
+            speechOutput += `${currentData.userList[i].name}さん、`;
         }
         speechOutput += 'です。';
 
@@ -249,16 +250,14 @@ const DeleteIntentHandler = {
                 .getResponse();
         }
         for (let i = 0; i<currentData.userList.length; i++) {
-            if (currentData.userList[i] === inputName) {
-                if (currentData.DutyName === inputName) {
-                    if (i === currentData.userList.length-1) {
-                        currentData.DutyName = currentData.userList[0];
-                    } else {
-                        currentData.DutyName = currentData.userList[i+1];
-                    }
+            if (currentData.userList[i].name === inputName) {
+                if (currentData.dutyName === inputName) {
+                    currentData.dutyName = i === currentData.userList.length-1 ? 
+                            currentData.userList[0].name : 
+                            currentData.userList[i+1].name;
                 }
                 const speechOutput = `削除が完了しました。削除されたメンバーは、
-                                        ${currentData.userList[i]}さんです。`;
+                                        ${currentData.userList[i].name}さんです。`;
                 currentData.userList.splice(i, 1);
                 dynamoDB.putUserData(handlerInput, currentData);
                 return handlerInput.responseBuilder
@@ -269,6 +268,39 @@ const DeleteIntentHandler = {
 
         return handlerInput.responseBuilder
             .speak(`${inputName}さんは見つかりませんでした。`)
+            .getResponse();
+    },
+};
+
+const SortIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+            && handlerInput.requestEnvelope.request.intent.name === 'SortIntent';
+    },
+    async handle(handlerInput) {
+        // テーブル内のデータを取得
+        let currentData = await dynamoDB.getUserData(handlerInput);
+
+        // テーブルに当番データを上書き
+        const sortedList = currentData.userList.sort((x, y) => x.read.localeCompare(y.read, 'ja'));
+
+        const updateData = {userList:sortedList, 
+            calledDate:currentData.calledDate,
+            dutyName:currentData.dutyName};
+        dynamoDB.putUserData(handlerInput, updateData);
+
+        // データを再取得
+        currentData = await dynamoDB.getUserData(handlerInput);
+
+        // 取得した名前データをテキストに追加
+        let speechOutput = '新しい順番は、';
+        for (const i in currentData.userList) {
+            speechOutput += `${currentData.userList[i].name}さん、`;
+        }
+        speechOutput += 'になります。';
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
             .getResponse();
     },
 };
@@ -324,6 +356,7 @@ exports.handler = skillBuilder
         SkipIntentHandler,
         GetAllUserIntentHandler,
         DeleteIntentHandler,
+        SortIntentHandler,
         CancelAndStopIntentHandler,
         SessionEndedRequestHandler
     )
