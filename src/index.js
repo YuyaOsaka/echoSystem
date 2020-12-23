@@ -84,8 +84,8 @@ const DialogFirstAddIntentHandler = {
         const allUserList = {userList:[{name:inputName, read:inputNameReading}], calledDate:firstAddDate, dutyName:inputName};
         await dynamoDB.putUserData(handlerInput, allUserList);
 
-        speechOutput = `${inputName}さんを当番表に初期登録しました。`;
-        repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
+        const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
+        const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
