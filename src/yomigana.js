@@ -14,7 +14,6 @@ async function getYomigana(inputWord) {
         })
     })
     const token = tokenizer.tokenize(inputWord);
-    delete tokenizer;
     return token[0].reading;
 }
 

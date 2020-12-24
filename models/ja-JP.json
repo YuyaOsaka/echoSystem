@@ -24,51 +24,20 @@
                     "slots": [
                         {
                             "name": "name",
-                            "type": "USERNAME"
+                            "type": "NAME"
                         }
                     ],
                     "samples": [
-                        "{name} さんを新しく追加",
                         "{name} さんを当番表に入れて",
-                        "{name} さんを新規追加"
-                    ]
-                },
-                {
-                    "name": "GetAllUserIntent",
-                    "slots": [],
-                    "samples": [
-                        "リストを教えて",
-                        "登録されている人を教えて"
-                    ]
-                },
-                {
-                    "name": "DialogAddIntent",
-                    "slots": [
-                        {
-                            "name": "name",
-                            "type": "USERNAME"
-                        }
-                    ],
-                    "samples": [
-                        "{name} さんを追加"
+                        "{name} さんを新規追加",
+                        "{name} さんを新しく追加"
                     ]
                 },
                 {
                     "name": "DialogIntent",
                     "slots": [],
                     "samples": [
-                        "特殊操作",
-                        "対話機能",
-                        "一括登録",
                         "対話して登録"
-                    ]
-                },
-                {
-                    "name": "DialogEndIntent",
-                    "slots": [],
-                    "samples": [
-                        "登録を終了",
-                        "追加を終了"
                     ]
                 },
                 {
@@ -76,7 +45,7 @@
                     "slots": [
                         {
                             "name": "name",
-                            "type": "USERNAME",
+                            "type": "NAME",
                             "samples": [
                                 "{name} さんを初期登録"
                             ]
@@ -87,10 +56,28 @@
                     ]
                 },
                 {
+                    "name": "DialogAddIntent",
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "NAME"
+                        }
+                    ],
+                    "samples": [
+                        "{name} さんを追加"
+                    ]
+                },
+                {
+                    "name": "DialogEndIntent",
+                    "slots": [],
+                    "samples": [
+                        "追加を終了"
+                    ]
+                },
+                {
                     "name": "GetDutyIntent",
                     "slots": [],
                     "samples": [
-                        "本日の当番",
                         "今日の当番を教えて"
                     ]
                 },
@@ -98,8 +85,17 @@
                     "name": "SkipIntent",
                     "slots": [],
                     "samples": [
-                        "順番を飛ばして",
-                        "当番をスキップ"
+                        "当番の順番を飛ばして",
+                        "次の人を飛ばして",
+                        "当番をスキップして"
+                    ]
+                },
+                {
+                    "name": "GetAllUserIntent",
+                    "slots": [],
+                    "samples": [
+                        "当番表の内容を教えて",
+                        "登録されている人を教えて"
                     ]
                 },
                 {
@@ -107,7 +103,7 @@
                     "slots": [
                         {
                             "name": "name",
-                            "type": "USERNAME"
+                            "type": "NAME"
                         }
                     ],
                     "samples": [
@@ -116,26 +112,42 @@
                     ]
                 },
                 {
-                    "name": "AddHelloIntent",
+                    "name": "SortIntent",
                     "slots": [],
                     "samples": [
-                        "何が起こっているか教えて",
-                        "動作を教えて"
+                        "順番を並べ替えて",
+                        "ソートして",
+                        "五十音順に並べて"
                     ]
                 }
             ],
             "types": [
                 {
-                    "name": "USERNAME",
+                    "name": "NAME",
                     "values": [
                         {
                             "name": {
-                                "value": "山本"
+                                "value": "伊集院"
                             }
                         },
                         {
                             "name": {
-                                "value": "林"
+                                "value": "赤井"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "野島"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "中山"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "斎藤"
                             }
                         },
                         {
@@ -155,22 +167,7 @@
                         },
                         {
                             "name": {
-                                "value": "おねがい"
-                            }
-                        },
-                        {
-                            "name": {
-                                "value": "そう"
-                            }
-                        },
-                        {
-                            "name": {
-                                "value": "うん"
-                            }
-                        },
-                        {
-                            "name": {
-                                "value": "いいよ"
+                                "value": "そうです"
                             }
                         },
                         {
@@ -191,13 +188,27 @@
                     "slots": [
                         {
                             "name": "name",
-                            "type": "USERNAME",
+                            "type": "NAME",
                             "confirmationRequired": true,
                             "elicitationRequired": true,
                             "prompts": {
-                                "confirmation": "Confirm.Slot.607648114345.1472063420211",
-                                "elicitation": "Elicit.Slot.607648114345.1472063420211"
+                                "confirmation": "Confirm.Slot.1365897385633.920126075248",
+                                "elicitation": "Elicit.Slot.1365897385633.920126075248"
                             }
+                        }
+                    ]
+                },
+                {
+                    "name": "DialogAddIntent",
+                    "confirmationRequired": false,
+                    "prompts": {},
+                    "slots": [
+                        {
+                            "name": "name",
+                            "type": "NAME",
+                            "confirmationRequired": false,
+                            "elicitationRequired": false,
+                            "prompts": {}
                         }
                     ]
                 }
@@ -206,7 +217,7 @@
         },
         "prompts": [
             {
-                "id": "Confirm.Slot.607648114345.1472063420211",
+                "id": "Confirm.Slot.1365897385633.920126075248",
                 "variations": [
                     {
                         "type": "PlainText",
@@ -215,11 +226,11 @@
                 ]
             },
             {
-                "id": "Elicit.Slot.607648114345.1472063420211",
+                "id": "Elicit.Slot.1365897385633.920126075248",
                 "variations": [
                     {
                         "type": "PlainText",
-                        "value": "最初の一人を追加する場合は、まるまるさんを初期登録、と発話してください。もしくは追加を終了、と宣言してください。"
+                        "value": "最初の一人を登録する場合は、まるまるさんを初期登録、と発話してください。もしくは、追加を終了と宣言してください。"
                     }
                 ]
             }
