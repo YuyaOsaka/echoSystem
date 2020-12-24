@@ -2,9 +2,10 @@ const va = require('virtual-alexa');
 const expect = require('expect');
 const model = './models/ja-JP.json';
 const handler = './src/index.js';
-const getUserData = require('../dynamoDB');
-const day = require('../day');
 const dynamoDB = require('../dynamoDB');
+const day = require('../day');
+const yomigana = require('../yomigana');
+
 
 const alexa = va.VirtualAlexa.Builder()
     .handler(handler)
@@ -55,39 +56,69 @@ describe('DialogEndIntentのテスト', () => {
 
 // 外部ライブラリを利用するテスト
 const day1Data = {
-    userList: [ '山田', '斎藤' ],
+    userList: [ { name : '山田', read : 'ヤマダ' }, 
+                { name : '斎藤', read : 'サイトウ' } ],
     calledDate: '2020-12-09T00:00:00.000Z',
-    numberOfCalls: 0
+    dutyName: '山田'
 };
 const day2Data = {
-    userList: [ '山田', '斎藤' ],
+    userList: [ { name : '山田', read : 'ヤマダ' },    
+                { name : '斎藤', read : 'サイトウ' } ],
     calledDate: '2020-12-09T00:00:00.000Z',
-    numberOfCalls: 1
+    dutyName: '斎藤'
+};
+const dutyloopData = {
+    userList: [ { name : '神田', read : 'カンダ' },    
+                { name : '伊藤', read : 'イトウ' },
+                { name : '内山', read : 'ウチヤマ' } ],
+    calledDate: '2020-12-09T00:00:00.000Z',
+    dutyName: '内山'
+};
+const skipData = {
+    userList: [ { name : '山田', read : 'ヤマダ' }, 
+                { name : '斎藤', read : 'サイトウ' } ],
+    calledDate: '2020-12-09T00:00:00.000Z',
+    dutyName: '斎藤'
 };
 const userListData = {
-    userList: [ '原田', '後藤' , '藤'],
+    userList: [ { name : '原田', read : 'ハラダ' }, 
+                { name : '後藤', read : 'ゴトウ' }, 
+                { name : '藤', read : 'フジ' } ],
     calledDate: '2020-12-09T00:00:00.000Z',
-    numberOfCalls: 0
+    dutyName: '藤'
 };
 const onlyOneUserData = {
-    userList: [ '山田' ],
+    userList: [ { name : '原田', read : 'ハラダ' } ],
     calledDate: '2020-12-09T00:00:00.000Z',
-    numberOfCalls: 1
+    dutyName: '藤'
 };
-const noData = {
+const sortData = {
+    userList: [ { name : '原田', read : 'ハラダ' }, 
+                { name : '山田', read : 'ヤマダ' }, 
+                { name : '中山', read : 'ナカヤマ' },    
+                { name : '後藤', read : 'ゴトウ' }, 
+                { name : '中村', read : 'ナカムラ' },                
+                { name : '藤', read : 'フジ' } ],
+    calledDate: '2020-12-09T00:00:00.000Z',
+    dutyName: '藤'
 };
+
+const readingName = "サトウ";
+
 const registrationDate = "2020/12/09";
 const designatedDate = "2020/12/10";
 
-jest.spyOn(getUserData, 'getUserData').mockReturnValue(day1Data);
+jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(day1Data);
+jest.spyOn(dynamoDB, 'putUserData').mockReturnValue();
+jest.spyOn(yomigana, 'getYomigana').mockReturnValue(readingName);
 jest.spyOn(day, 'getFormartedDate').mockReturnValue(designatedDate);
 jest.spyOn(day, 'isDifferentDate').mockReturnValue(true);
 
 describe('AddUserIntentのテスト', () => {
     it('「中山」を追加した際に、「中山」を含んだ返答を行うことを確認', async () => {
-        const addUserResponse = await alexa.intend("AddUserIntent", {name: "中山"});
+        const addUserResponse = await alexa.intend("AddUserIntent", {name: "佐藤"});
         expect(addUserResponse.response.outputSpeech.ssml)
-            .toBe("<speak>中山さんを当番表に追加しました。</speak>");
+            .toBe("<speak>佐藤さんを当番表に追加しました。</speak>");
     });
 });
 
@@ -108,26 +139,34 @@ describe('DialogAddIntentのテスト', () => {
         const dialogAddResponse = await alexa.intend("DialogAddIntent", {name: "小林"});
         expect(dialogAddResponse.response.outputSpeech.ssml)
             .toBe(`<speak>小林さんを当番表に追加しました。</speak>`);
-        jest.spyOn(getUserData, 'getUserData').mockClear();
+        jest.spyOn(dynamoDB, 'getUserData').mockClear();
     });
 });
 
 describe('GetDutyIntentのテスト', () => {
     it('当番表から当番を決定し、先頭の「山田」が呼ばれることを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(day1Data);
+        jest.spyOn(day, 'getFormartedDate').mockReturnValue(registrationDate);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(day1Data);
         const getDutyResponse = await alexa.intend("GetDutyIntent");
         expect(getDutyResponse.response.outputSpeech.ssml)
             .toBe(`<speak>今日のスピーチ当番は、山田さんです。</speak>`);
     });
     it('日付が変わったことで、次の当番である「斎藤」が呼ばれることを確認', async () => {
         jest.spyOn(day, 'getFormartedDate').mockReturnValue(designatedDate);
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(day2Data);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(day2Data);
         const getDutyResponse = await alexa.intend("GetDutyIntent");
         expect(getDutyResponse.response.outputSpeech.ssml)
             .toBe(`<speak>今日のスピーチ当番は、斎藤さんです。</speak>`);
     });
+    it('当番表の最後尾が当番だった場合、次の当番が先頭になることを確認', async () => {
+        jest.spyOn(day, 'getFormartedDate').mockReturnValue(designatedDate);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(dutyloopData);
+        const getDutyResponse = await alexa.intend("GetDutyIntent");
+        expect(getDutyResponse.response.outputSpeech.ssml)
+            .toBe(`<speak>今日のスピーチ当番は、内山さんです。</speak>`);
+    });
     it('当番表に誰も登録されていない状態で呼び出した場合、エラーメッセージが発生することを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(noData);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue();
         const errorResponse = await alexa.intend("GetDutyIntent");
         expect(errorResponse.response.outputSpeech.ssml)
             .toBe(`<speak>エラーが発生しました</speak>`);
@@ -136,14 +175,13 @@ describe('GetDutyIntentのテスト', () => {
 
 describe('SkipIntentのテスト', () => {
     it('登録初日にskipすることで当番が「山田」から「斎藤」に代わることを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(day1Data).mockReturnValue(day2Data)
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValueOnce(day1Data).mockReturnValueOnce(skipData)
         const skipResponse = await alexa.intend("SkipIntent");
         expect(skipResponse.response.outputSpeech.ssml)
-            .toBe(`<speak>当番を山田さんから
-                                斎藤さんに変更しました。</speak>`);
+            .toBe(`<speak>当番を山田さんから斎藤さんに変更しました。</speak>`);
     });
     it('当番表に誰も登録されていない状態で呼び出した場合、エラーメッセージが発生することを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(noData);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue();
         const errorResponse = await alexa.intend("SkipIntent");
         expect(errorResponse.response.outputSpeech.ssml)
             .toBe(`<speak>エラーが発生しました</speak>`);
@@ -152,7 +190,7 @@ describe('SkipIntentのテスト', () => {
 
 describe('GetAllUserIntentのテスト', () => {
     it('当番表に登録されている「原田」「後藤」「藤」が呼ばれることを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(userListData);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(userListData);
         const getAllUserResponse = await alexa.intend("GetAllUserIntent");
         expect(getAllUserResponse.response.outputSpeech.ssml)
             .toBe(`<speak>当番表に登録されているメンバーは、原田さん、後藤さん、藤さん、です。</speak>`);
@@ -161,7 +199,7 @@ describe('GetAllUserIntentのテスト', () => {
 
 describe('DeleteIntentのテスト', () => {
     it('「斎藤」を指定して削除を行い、「斎藤」を含んだ返答を行うことを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(day1Data);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(day1Data);
         const deleteResponse = await alexa.intend("DeleteIntent", {name: "斎藤"});
         expect(deleteResponse.response.outputSpeech.ssml)
             .toBe(`<speak>削除が完了しました。削除されたメンバーは、
@@ -169,7 +207,7 @@ describe('DeleteIntentのテスト', () => {
     });
 
     it('削除対象が当番表に存在しない場合、対象が見つからないと宣言することを確認', async () => {
-        jest.spyOn(getUserData, 'getUserData').mockReturnValue(day1Data);
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(day1Data);
         const deleteResponse = await alexa.intend("DeleteIntent", {name: "高田"});
         expect(deleteResponse.response.outputSpeech.ssml)
             .toBe(`<speak>高田さんは見つかりませんでした。</speak>`);
@@ -177,8 +215,23 @@ describe('DeleteIntentのテスト', () => {
 
     it('削除の際当番表に1人のみだった場合、削除不可能を宣言することを確認', async () => {
         jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(onlyOneUserData);
-        const deleteResponse = await alexa.intend("DeleteIntent", {name: "山田"});
+        const deleteResponse = await alexa.intend("DeleteIntent", {name: "原田"});
         expect(deleteResponse.response.outputSpeech.ssml)
             .toBe(`<speak>リストが1名以下の場合は、削除を行えません。</speak>`);
+    });
+});
+
+describe('SortIntentのテスト', () => {
+    it('意図した順番となっていることを確認', async () => {
+    jest.spyOn(dynamoDB, 'getUserData').mockReturnValue(sortData);
+    const sortResponse = await alexa.intend("SortIntent");
+        expect(sortResponse.prompt())
+            .toBe(`<speak>新しい順番は、後藤さん、中村さん、中山さん、原田さん、藤さん、山田さん、になります。</speak>`);
+    });
+    it('当番表に誰も登録されていない状態で呼び出した場合、エラーメッセージが発生することを確認', async () => {
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValue();
+        const errorResponse = await alexa.intend("SortIntent");
+        expect(errorResponse.response.outputSpeech.ssml)
+            .toBe(`<speak>エラーが発生しました</speak>`);
     });
 });
