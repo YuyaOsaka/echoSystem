@@ -80,6 +80,12 @@ const skipData = {
     calledDate: '2020-12-09T00:00:00.000Z',
     dutyName: '斎藤'
 };
+const skiploopData = {
+    userList: [ { name : '山田', read : 'ヤマダ' }, 
+                { name : '斎藤', read : 'サイトウ' } ],
+    calledDate: '2020-12-09T00:00:00.000Z',
+    dutyName: '山田'
+}
 const userListData = {
     userList: [ { name : '原田', read : 'ハラダ' }, 
                 { name : '後藤', read : 'ゴトウ' }, 
@@ -179,6 +185,12 @@ describe('SkipIntentのテスト', () => {
         const skipResponse = await alexa.intend("SkipIntent");
         expect(skipResponse.response.outputSpeech.ssml)
             .toBe(`<speak>当番を山田さんから斎藤さんに変更しました。</speak>`);
+    });
+    it('当番表の最後尾が当番だった場合、スキップ処理後に当番が先頭になることを確認', async () => {
+        jest.spyOn(dynamoDB, 'getUserData').mockReturnValueOnce(day2Data).mockReturnValueOnce(skiploopData)
+        const getDutyResponse = await alexa.intend("SkipIntent");
+        expect(getDutyResponse.response.outputSpeech.ssml)
+            .toBe(`<speak>当番を斎藤さんから山田さんに変更しました。</speak>`);
     });
     it('当番表に誰も登録されていない状態で呼び出した場合、エラーメッセージが発生することを確認', async () => {
         jest.spyOn(dynamoDB, 'getUserData').mockReturnValue();
