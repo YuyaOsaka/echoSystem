@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint **/*.js --fix",
+    "lint": "eslint src/*.js --fix",
     "test": "jest __tests__/*"
   },
   "author": "",
