@@ -1,29 +1,24 @@
-name: ci eslint
+name: Run ESLint on Pull Requests
 
 on:
-  push:
-    branches:
-      - develop
-  pull_request:
-    branches:
-      - develop
+  - pull_request
 
 jobs:
   build:
-
+    name: Run ESLint
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [12]
-
     steps:
+      
+      # Check out the repository
       - uses: actions/checkout@v1
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+
+      # Install Node.js
+      - uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.node-version }}
-      - name: yarn install, eslint
-        run: |
-          yarn
-          yarn eslint src/*.js --fix
+          node-version: 12
+
+      # Install your dependencies
+      - run: npm ci
+
+      # Run ESLint
+      - uses: eslint/github-action@v0
