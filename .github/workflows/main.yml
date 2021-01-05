@@ -12,4 +12,4 @@ jobs:
       - name: yarn install
         run: yarn install
       - name: Run eslint
-        run: yarn lint
+        run: yarn lint src/*.js --fix
