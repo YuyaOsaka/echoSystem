@@ -2,8 +2,7 @@ name: CI
 
 # タイミングを指定
 on: 
-  push:
-    branches: [ develop ]
+  push
 
 jobs:
   build:
