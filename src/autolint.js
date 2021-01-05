@@ -1,1 +1,1 @@
-console.log('テストコード13');;
+console.log('テストコード');;
