@@ -2,8 +2,8 @@ name: CI
 
 # タイミングを指定
 on: 
-  push:
-    branches: [ feature/auto-lint-test ]
+  pull_request:
+    branches: [ develop ]
 
 jobs:
   build:
