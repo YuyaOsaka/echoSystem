@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - name: npm install, eslint
+      - name: yarn install, eslint
         run: |
-          npm
-          npm run lint
+          yarn
+          yarn lint
