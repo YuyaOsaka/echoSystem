@@ -151,7 +151,7 @@ const GetDutyIntentHandler = {
         let updateData;
 
         if(day.isDifferentDate(currentDate, lastCalledDate)) {
-            const newDutyData = duty.getNewDutyName(currentData);
+            const newDutyData = duty.getDutyName(currentData);
             newDuty = newDutyData.dutyName;
 
             updateData = {userList:currentData.userList, 
@@ -181,7 +181,7 @@ const SkipIntentHandler = {
 
         // テーブルに当番データを上書き
         for (let i = 0; i<currentData.userList.length; i++) {
-            const newDutyData = duty.getNewDutyName(currentData);
+            const newDutyData = duty.getDutyName(currentData);
             newDuty = newDutyData.dutyName;
             previousDuty = newDutyData.previousDutyName
         }
