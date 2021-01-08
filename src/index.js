@@ -3,10 +3,10 @@ const adapter = require('ask-sdk-dynamodb-persistence-adapter');
 const dynamoDB = require('./dynamoDB.js');
 const day = require('./day.js');
 const yomigana = require('./yomigana.js');
+const duty = require('./duty.js');
 const config = {tableName: 'userTable', 
     partition_key_name: 'id',  
-    attributesName: 'userAndDate',
-    createTable: true};
+    attributesName: 'userAndDate'};
 const dynamoDBAdapter = new adapter.DynamoDbPersistenceAdapter(config);
 
 const LaunchRequestHandler = {
@@ -151,15 +151,9 @@ const GetDutyIntentHandler = {
         let updateData;
 
         if(day.isDifferentDate(currentDate, lastCalledDate)) {
-            for (const i in currentData.userList) {
-                if(currentData.userList[i].name === currentData.DutyName){
-                    if (i === currentData.userList.length) {
-                        newDuty = currentData.userList[0].name;
-                    } else {
-                        newDuty = currentData.userList[i+1].name;
-                    }
-                }
-            }
+            const newDutyData = duty.getDutyName(currentData);
+            newDuty = newDutyData.dutyName;
+
             updateData = {userList:currentData.userList, 
                 calledDate:currentData.calledDate,
                 dutyName:newDuty};
@@ -187,12 +181,9 @@ const SkipIntentHandler = {
 
         // テーブルに当番データを上書き
         for (let i = 0; i<currentData.userList.length; i++) {
-            if (currentData.userList[i].name === currentData.dutyName) {
-                newDuty = i === currentData.userList.length-1 ? 
-                        currentData.userList[0].name : 
-                        currentData.userList[i+1].name;
-                previousDuty = currentData.userList[i].name;
-            }
+            const newDutyData = duty.getDutyName(currentData);
+            newDuty = newDutyData.dutyName;
+            previousDuty = newDutyData.previousDutyName
         }
         const updateData = {userList:currentData.userList, 
             calledDate:currentData.calledDate,
@@ -241,7 +232,7 @@ const DeleteIntentHandler = {
         const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
 
         // DynamoDBからデータを取得
-        let currentData = await dynamoDB.getUserData(handlerInput);
+        const currentData = await dynamoDB.getUserData(handlerInput);
 
         // 取得した名前データをテキストに追加
         if(currentData.userList.length <= 1) {
@@ -253,8 +244,8 @@ const DeleteIntentHandler = {
             if (currentData.userList[i].name === inputName) {
                 if (currentData.dutyName === inputName) {
                     currentData.dutyName = i === currentData.userList.length-1 ? 
-                            currentData.userList[0].name : 
-                            currentData.userList[i+1].name;
+                        currentData.userList[0].name : 
+                        currentData.userList[i+1].name;
                 }
                 const speechOutput = `削除が完了しました。削除されたメンバーは、
                                         ${currentData.userList[i].name}さんです。`;
