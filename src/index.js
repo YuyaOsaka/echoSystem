@@ -104,7 +104,7 @@ const DialogFirstAddIntentHandler = {
               console.log(`ERROR StatusCode:${  error.statusCode  } ${  error.message}`);
             }
             return responseBuilder
-              .speak('メールアドレスの利用が許可されていません。アレクサアプリの設定を変更して下さい。')
+                .speak('メールアドレスの利用が許可されていません。アレクサアプリの設定を変更して下さい。')
               .withAskForPermissionsConsentCard(PERMISSIONS)
               .getResponse();
         }
