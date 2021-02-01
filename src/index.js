@@ -78,7 +78,7 @@ const DialogFirstAddIntentHandler = {
         // 登録日を取得
         const firstAddDate = day.getFormartedDate();
 
-        // ユーザー情報の取得可否確認
+        // メールアドレス情報の取得可否確認用
         const { responseBuilder, serviceClientFactory } = handlerInput;
 
         try {
