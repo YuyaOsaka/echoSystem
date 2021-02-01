@@ -9,6 +9,8 @@ const config = {tableName: 'userTable',
     attributesName: 'userAndDate'};
 const dynamoDBAdapter = new adapter.DynamoDbPersistenceAdapter(config);
 
+const PERMISSIONS = ['alexa::profile:email:read'];
+
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
@@ -76,21 +78,36 @@ const DialogFirstAddIntentHandler = {
         // 登録日を取得
         const firstAddDate = day.getFormartedDate();
 
-        // スロットからユーザー名を取得
-        const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
-        const inputNameReading = await yomigana.getYomigana(inputName);
+        // メールアドレス情報の取得可否確認用
+        const { responseBuilder, serviceClientFactory } = handlerInput;
 
-        // DynamoDBにユーザーと登録日を追加
-        const allUserList = {userList:[{name:inputName, read:inputNameReading}], calledDate:firstAddDate, dutyName:inputName};
-        await dynamoDB.putUserData(handlerInput, allUserList);
+        try {
+            // メールアドレス情報の取得
+            const deviceAddressServiceClient = serviceClientFactory.getUpsServiceClient();
+            const email = await deviceAddressServiceClient.getProfileEmail(); 
 
-        const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
-        const repromptSpeechOutput = '初期登録の確認をします。「はい」か「いいえ」で応答してください';
+            // スロットからユーザー名を取得
+            const inputName = handlerInput.requestEnvelope.request.intent.slots.name.value;
+            const inputNameReading = await yomigana.getYomigana(inputName);
 
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(repromptSpeechOutput)
-            .getResponse();
+            // DynamoDBにユーザーと登録日を追加
+            const allUserList = {userList:[{name:inputName, read:inputNameReading}], calledDate:firstAddDate, dutyName:inputName, mailAddress:email};
+            await dynamoDB.putUserData(handlerInput, allUserList);
+
+            const speechOutput = `${inputName}さんを当番表に初期登録しました。`;
+            
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();
+        } catch (error) {
+            if (error.name == 'ServiceError') {
+                console.log(`ERROR StatusCode:${error.statusCode} ${error.message}`);
+            }
+            return responseBuilder
+                .speak('メールアドレスの利用が許可されていません。アレクサアプリの設定を変更して下さい。')
+                .withAskForPermissionsConsentCard(PERMISSIONS)
+                .getResponse();
+        }
     },
 };
 
@@ -156,7 +173,8 @@ const GetDutyIntentHandler = {
 
             updateData = {userList:currentData.userList, 
                 calledDate:currentData.calledDate,
-                dutyName:newDuty};
+                dutyName:newDuty,
+                mailAddress:currentData.mailAddress};
             dynamoDB.putUserData(handlerInput, updateData);
             currentData = await dynamoDB.getUserData(handlerInput);
         }
@@ -187,7 +205,8 @@ const SkipIntentHandler = {
         }
         const updateData = {userList:currentData.userList, 
             calledDate:currentData.calledDate,
-            dutyName:newDuty};
+            dutyName:newDuty,
+            mailAddress:currentData.mailAddress};
         dynamoDB.putUserData(handlerInput, updateData);
 
         // 新しい当番の名前データをテキストに追加
@@ -277,7 +296,8 @@ const SortIntentHandler = {
 
         const updateData = {userList:sortedList, 
             calledDate:currentData.calledDate,
-            dutyName:currentData.dutyName};
+            dutyName:currentData.dutyName,
+            mailAddress:currentData.mailAddress};
         dynamoDB.putUserData(handlerInput, updateData);
 
         // データを再取得
