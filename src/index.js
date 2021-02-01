@@ -101,7 +101,7 @@ const DialogFirstAddIntentHandler = {
                 .getResponse();
         } catch (error) {
             if (error.name == 'ServiceError') {
-                console.log(`ERROR StatusCode:${error.statusCode  } ${  error.message}`);
+                console.log(`ERROR StatusCode:${error.statusCode} ${  error.message}`);
             }
             return responseBuilder
                 .speak('メールアドレスの利用が許可されていません。アレクサアプリの設定を変更して下さい。')
